@@ -150,10 +150,12 @@ export const imagesApi = {
   // Returns up to 5 example photos for a query; throws a 404 ApiClientError
   // when no image provider is configured server-side (callers fall back to
   // an external search link).
-  examples: (query: string) =>
-    request<{ examples: ExampleImage[] }>(`/images/examples?query=${encodeURIComponent(query)}`).then(
-      (r) => r.examples,
-    ),
+  examples: (query: string, fallback?: string) =>
+    request<{ examples: ExampleImage[] }>(
+      `/images/examples?query=${encodeURIComponent(query)}${fallback ? `&fallback=${encodeURIComponent(fallback)}` : ''}`,
+      {},
+      20_000,
+    ).then((r) => r.examples),
 }
 
 // --- Admin (family management) ----------------------------------------------

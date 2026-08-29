@@ -41,7 +41,12 @@ imagesRouter.get(
 //   2. Unsplash (UNSPLASH_ACCESS_KEY) — stock photos.
 // With neither configured this 404s and the frontend falls back to an
 // external Google Images search link.
-const examplesSchema = z.object({ query: z.string().trim().min(1).max(160) })
+const examplesSchema = z.object({
+  query: z.string().trim().min(1).max(160),
+  // Simpler backup query (e.g. color + garment without the occasion) used
+  // when the primary finds nothing — keyless providers have thinner indexes.
+  fallback: z.string().trim().max(160).optional(),
+})
 
 interface ExampleOut {
   thumb: string | undefined
@@ -66,6 +71,26 @@ async function googleImageExamples(query: string, key: string, cx: string): Prom
   }))
 }
 
+// Keyless fallback: Openverse (openly licensed images, run by WordPress).
+// No API key required; each result links back to the page the image comes
+// from, so the click-through-to-source behavior still works.
+async function openverseExamples(query: string): Promise<ExampleOut[]> {
+  const upstream = await fetch(
+    `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=5&mature=false`,
+    { headers: { 'User-Agent': 'Heygotchu/1.0 (family outfit planner)' } },
+  )
+  if (!upstream.ok) throw new ApiError(502, 'Image search returned an error.')
+  const data = (await upstream.json()) as {
+    results?: { thumbnail?: string; url?: string; foreign_landing_url?: string; title?: string }[]
+  }
+  return (data.results ?? []).map((r) => ({
+    thumb: r.thumbnail ?? r.url,
+    url: r.url,
+    pageUrl: r.foreign_landing_url ?? r.url,
+    alt: r.title,
+  }))
+}
+
 async function unsplashExamples(query: string, accessKey: string): Promise<ExampleOut[]> {
   const upstream = await fetch(
     `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=5&orientation=portrait`,
@@ -86,18 +111,40 @@ async function unsplashExamples(query: string, accessKey: string): Promise<Examp
 imagesRouter.get(
   '/examples',
   asyncHandler(async (req, res) => {
-    const { query } = examplesSchema.parse(req.query)
+    const { query, fallback } = examplesSchema.parse(req.query)
     const googleKey = process.env.GOOGLE_CSE_KEY
     const googleCx = process.env.GOOGLE_CSE_ID
     const unsplashKey = process.env.UNSPLASH_ACCESS_KEY
 
-    let results: ExampleOut[]
+    // Providers cascade fail-soft: a misconfigured or rate-limited provider
+    // logs its reason and the next one takes over, ending at the keyless
+    // Openverse fallback so inline examples always work.
+    let results: ExampleOut[] | null = null
     if (googleKey && googleCx) {
-      results = await googleImageExamples(query, googleKey, googleCx)
-    } else if (unsplashKey) {
-      results = await unsplashExamples(query, unsplashKey)
-    } else {
-      throw new ApiError(404, 'Image search is not configured on this server.')
+      try {
+        results = await googleImageExamples(query, googleKey, googleCx)
+      } catch (err) {
+        console.error('[images] Google CSE failed, falling through:', err)
+      }
+    }
+    if (!results?.length && unsplashKey) {
+      try {
+        results = await unsplashExamples(query, unsplashKey)
+      } catch (err) {
+        console.error('[images] Unsplash failed, falling through:', err)
+      }
+    }
+    if (!results?.length) {
+      results = await openverseExamples(query)
+    }
+    if (!results.length && fallback && fallback !== query) {
+      // Openverse ANDs every term, so progressively drop leading words
+      // ("emerald green kurta" -> "green kurta" -> "kurta") until we get hits.
+      let words = fallback.split(/\s+/).filter(Boolean)
+      while (!results.length && words.length > 0) {
+        results = await openverseExamples(words.join(' '))
+        words = words.slice(1)
+      }
     }
 
     res.json({ examples: results.filter((r) => Boolean(r.thumb)).slice(0, 5) })
