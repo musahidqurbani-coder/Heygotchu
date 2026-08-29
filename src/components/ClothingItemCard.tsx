@@ -17,11 +17,60 @@ interface ClothingItemCardProps {
   item: ClothingItem
   preferences?: ClothingPreferences
   onDelete: (id: string) => void
+  selectMode?: boolean
+  selected?: boolean
+  onToggleSelect?: (id: string) => void
 }
 
-export default function ClothingItemCard({ item, preferences, onDelete }: ClothingItemCardProps) {
+export default function ClothingItemCard({
+  item,
+  preferences,
+  onDelete,
+  selectMode,
+  selected,
+  onToggleSelect,
+}: ClothingItemCardProps) {
   const recommended = meetsHardCoverageRules(item, preferences)
   const [showPhoto, setShowPhoto] = useState(false)
+
+  // In selection mode the whole card is one big toggle target.
+  if (selectMode) {
+    return (
+      <button
+        type="button"
+        onClick={() => onToggleSelect?.(item.id)}
+        aria-pressed={selected}
+        aria-label={`${selected ? 'Deselect' : 'Select'} ${item.name}`}
+        className={`relative flex flex-col overflow-hidden rounded-2xl bg-white text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-coral ${
+          selected ? 'ring-2 ring-coral' : 'ring-1 ring-black/5 opacity-80'
+        }`}
+      >
+        <span
+          className={`absolute right-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full text-xs font-bold shadow ${
+            selected ? 'bg-coral text-white' : 'bg-white/90 text-ink/30 ring-1 ring-black/15'
+          }`}
+          aria-hidden="true"
+        >
+          {selected ? '✓' : ''}
+        </span>
+        <span className="flex h-28 w-full items-center justify-center bg-cloud">
+          {item.photo ? (
+            <img src={item.photo} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-4xl" aria-hidden="true">
+              {CATEGORY_ICON[item.category]}
+            </span>
+          )}
+        </span>
+        <span className="block p-3">
+          <span className="block truncate text-sm font-semibold text-ink">{item.name}</span>
+          <span className="mt-0.5 block text-xs capitalize text-ink/45">
+            {item.category} · {item.warmth}
+          </span>
+        </span>
+      </button>
+    )
+  }
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-md">

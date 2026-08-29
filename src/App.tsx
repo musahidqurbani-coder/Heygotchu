@@ -131,6 +131,32 @@ export default function App() {
     if (failed > 0) throw new Error('partial failure')
   }
 
+  async function handleBulkDeleteItems(ids: string[]) {
+    let deleted = 0
+    for (const id of ids) {
+      try {
+        await closetApi.remove(id)
+        deleted += 1
+      } catch {
+        // keep going — a partial failure still removes the rest
+      }
+    }
+    if (deleted === ids.length) {
+      const removed = new Set(ids)
+      setCloset((prev) => prev.filter((i) => !removed.has(i.id)))
+    } else {
+      // Something failed part-way — reload the authoritative list.
+      try {
+        setCloset(await closetApi.list())
+      } catch { /* keep current state; next visit reloads */ }
+    }
+    setToastMessage(
+      deleted === ids.length
+        ? `Deleted ${deleted} item${deleted === 1 ? '' : 's'}`
+        : `Deleted ${deleted} of ${ids.length} — try the rest again`,
+    )
+  }
+
   async function handleLoadStarterCloset() {
     try {
       const starter = buildStarterCloset()
@@ -361,6 +387,7 @@ export default function App() {
           onAdd={handleAddClothingItem}
           onBulkAdd={handleBulkAddItems}
           onDelete={handleDeleteClothingItem}
+          onBulkDelete={handleBulkDeleteItems}
           onLoadStarter={handleLoadStarterCloset}
           onBack={() => setView(currentTrip ? 'results' : 'landing')}
         />

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { authApi, setTokenGetter, type PublicUser } from '../lib/apiClient'
 
 const TOKEN_KEY = 'heygotchu.auth.token.v1'
@@ -21,12 +21,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PublicUser | null>(null)
   const [status, setStatus] = useState<'checking' | 'signed-out' | 'signed-in'>('checking')
 
-  // Every apiClient call reads the current token through this getter rather
-  // than a closed-over value, so it's always up to date even across
-  // re-renders/logins without needing to thread the token through every call.
+  // Every apiClient call reads the current token through this getter. It
+  // must be a ref updated during render — wiring it in an effect loses a
+  // race right after login: App's data-load effect (child) runs before this
+  // provider's effects (parent), so the first closet/preferences/trips
+  // fetches went out with no Authorization header and 401'd, leaving the
+  // app looking empty until a full reload.
+  const tokenRef = useRef(token)
+  tokenRef.current = token
   useEffect(() => {
-    setTokenGetter(() => token)
-  }, [token])
+    setTokenGetter(() => tokenRef.current)
+  }, [])
 
   useEffect(() => {
     let cancelled = false

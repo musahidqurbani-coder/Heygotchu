@@ -52,8 +52,14 @@ export default function LoginVideoScreen({
   useEffect(() => {
     const mq = window.matchMedia('(max-aspect-ratio: 4/5)')
     const onChange = () => setIsPortrait(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
+    // Older Safari/WebView builds only support the deprecated addListener —
+    // calling addEventListener there throws and crashes the login screen.
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange)
+      return () => mq.removeEventListener('change', onChange)
+    }
+    mq.addListener(onChange)
+    return () => mq.removeListener(onChange)
   }, [])
 
   useEffect(() => {

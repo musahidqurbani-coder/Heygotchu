@@ -2,7 +2,7 @@
 // hashed assets, and the login video available offline. API calls always go
 // to the network (data must be live); static assets are cached as they're
 // fetched, and navigations fall back to the cached shell when offline.
-const CACHE = 'heygotchu-v1'
+const CACHE = 'heygotchu-v2'
 
 self.addEventListener('install', () => {
   self.skipWaiting()

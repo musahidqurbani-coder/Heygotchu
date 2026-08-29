@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { PackingListEntry } from '../types'
+import PhotoLightbox from './PhotoLightbox'
 
 const CATEGORY_LABEL: Record<string, string> = {
   top: 'Tops',
@@ -18,6 +19,7 @@ interface PackingListProps {
 
 export default function PackingList({ entries, gaps }: PackingListProps) {
   const [checked, setChecked] = useState<Record<string, boolean>>({})
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
 
   const grouped = useMemo(() => {
     const groups: Record<string, PackingListEntry[]> = {}
@@ -55,11 +57,25 @@ export default function PackingList({ entries, gaps }: PackingListProps) {
                       onChange={() => setChecked((c) => ({ ...c, [item.id]: !c[item.id] }))}
                       className="h-4 w-4 shrink-0 rounded border-black/20 text-coral focus:ring-coral"
                     />
-                    <span
-                      className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-black/10"
-                      style={{ backgroundColor: item.color }}
-                      aria-hidden="true"
-                    />
+                    {item.photo ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setLightbox({ src: item.photo!, alt: item.name })
+                        }}
+                        aria-label={`View ${item.name} full size`}
+                        className="shrink-0 cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+                      >
+                        <img src={item.photo} alt="" className="h-8 w-8 rounded-lg object-cover ring-1 ring-black/10" />
+                      </button>
+                    ) : (
+                      <span
+                        className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-black/10"
+                        style={{ backgroundColor: item.color }}
+                        aria-hidden="true"
+                      />
+                    )}
                     <span className={checked[item.id] ? 'text-ink/40 line-through' : 'text-ink/80'}>
                       {item.name}
                     </span>
@@ -89,6 +105,8 @@ export default function PackingList({ entries, gaps }: PackingListProps) {
           </ul>
         </div>
       )}
+
+      {lightbox && <PhotoLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
     </div>
   )
 }

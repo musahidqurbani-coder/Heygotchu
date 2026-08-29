@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import type { ClothingItem, DayOutfit } from '../types'
 import { WEATHER_ICON } from '../lib/weatherApi'
 import { formatDateLabel } from '../lib/dateUtils'
+import PhotoLightbox from './PhotoLightbox'
 
 const CATEGORY_ICON: Record<ClothingItem['category'], string> = {
   top: '👕',
@@ -12,17 +14,30 @@ const CATEGORY_ICON: Record<ClothingItem['category'], string> = {
   accessory: '🧢',
 }
 
-function ItemChip({ item }: { item: ClothingItem }) {
+function ItemChip({ item, onPhotoClick }: { item: ClothingItem; onPhotoClick: (item: ClothingItem) => void }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-cloud px-3 py-2">
-      <span
-        className="h-6 w-6 shrink-0 rounded-full ring-1 ring-black/10"
-        style={{ backgroundColor: item.color }}
-        aria-hidden="true"
-      />
-      <span className="text-base leading-none" aria-hidden="true">
-        {CATEGORY_ICON[item.category]}
-      </span>
+    <div className="flex items-center gap-2 rounded-xl bg-cloud px-2.5 py-2">
+      {item.photo ? (
+        <button
+          type="button"
+          onClick={() => onPhotoClick(item)}
+          aria-label={`View ${item.name} full size`}
+          className="shrink-0 cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+        >
+          <img src={item.photo} alt={item.name} className="h-12 w-12 rounded-lg object-cover ring-1 ring-black/10" />
+        </button>
+      ) : (
+        <>
+          <span
+            className="h-6 w-6 shrink-0 rounded-full ring-1 ring-black/10"
+            style={{ backgroundColor: item.color }}
+            aria-hidden="true"
+          />
+          <span className="text-base leading-none" aria-hidden="true">
+            {CATEGORY_ICON[item.category]}
+          </span>
+        </>
+      )}
       <span className="text-sm text-ink/80">{item.name}</span>
     </div>
   )
@@ -33,6 +48,8 @@ interface DayOutfitCardProps {
 }
 
 export default function DayOutfitCard({ outfit }: DayOutfitCardProps) {
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
+
   return (
     <div className="animate-pop-in rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:shadow-md sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -62,7 +79,11 @@ export default function DayOutfitCard({ outfit }: DayOutfitCardProps) {
       {outfit.items.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-2">
           {outfit.items.map((item) => (
-            <ItemChip key={item.id} item={item} />
+            <ItemChip
+              key={item.id}
+              item={item}
+              onPhotoClick={(i) => i.photo && setLightbox({ src: i.photo, alt: i.name })}
+            />
           ))}
         </div>
       ) : (
@@ -76,6 +97,8 @@ export default function DayOutfitCard({ outfit }: DayOutfitCardProps) {
           ))}
         </ul>
       )}
+
+      {lightbox && <PhotoLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
     </div>
   )
 }
