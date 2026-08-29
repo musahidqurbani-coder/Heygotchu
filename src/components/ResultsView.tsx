@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ClothingPreferences, DayWeather, TripPlan } from '../types'
-import InspirationRow, { buildInspirationQuery } from './InspirationRow'
+import InspirationSection from './InspirationSection'
+import { buildInspirationQuery } from './InspirationRow'
 import { formatDateRange } from '../lib/dateUtils'
 import { fallbackImage } from '../lib/imageApi'
 import { SAMPLE_DESTINATIONS } from '../data/sampleDestinations'
@@ -122,10 +123,12 @@ export default function ResultsView({ trip, preferences, saved, onRegenerate, on
           const top = buildInspirationQuery(preferences, context, 'top')
           const bottom = buildInspirationQuery(preferences, context, 'bottom')
           return (
-            <>
-              <InspirationRow label="Top ideas" query={top.query} fallbackQuery={top.fallback} />
-              <InspirationRow label="Bottom ideas" query={bottom.query} fallbackQuery={bottom.fallback} />
-            </>
+            <InspirationSection
+              tabs={[
+                { label: 'Tops', query: top.query, fallback: top.fallback },
+                { label: 'Bottoms', query: bottom.query, fallback: bottom.fallback },
+              ]}
+            />
           )
         })()}
       </section>

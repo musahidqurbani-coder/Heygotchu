@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import PhotoLightbox from './PhotoLightbox'
-import InspirationRow, { buildInspirationQuery } from './InspirationRow'
+import InspirationSection from './InspirationSection'
+import { buildInspirationQuery } from './InspirationRow'
 import type { ClothingItem, ClothingPreferences } from '../types'
 import {
   aiApi,
@@ -222,8 +223,12 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
           return (
             <div className="space-y-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
               <h3 className="font-display text-lg font-semibold">Style inspiration 🛍️</h3>
-              <InspirationRow label="Top ideas" query={top.query} fallbackQuery={top.fallback} />
-              <InspirationRow label="Bottom ideas" query={bottom.query} fallbackQuery={bottom.fallback} />
+              <InspirationSection
+                tabs={[
+                  { label: 'Tops', query: top.query, fallback: top.fallback },
+                  { label: 'Bottoms', query: bottom.query, fallback: bottom.fallback },
+                ]}
+              />
             </div>
           )
         })()}
