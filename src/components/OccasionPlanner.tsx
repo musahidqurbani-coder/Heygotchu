@@ -167,6 +167,34 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
           </div>
         </div>
 
+        {/* The personal color palette always leads — it's the first
+            recommendation, before any outfit or photo examples. */}
+        {(preferences.colorAnalysis?.bestColors?.length ?? 0) > 0 && (
+          <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+            <h3 className="font-display text-lg font-semibold">
+              Your colors for this occasion 🎨
+              {preferences.colorAnalysis?.seasonalType && (
+                <span className="ml-2 align-middle text-xs font-sans font-semibold uppercase tracking-widest text-ink/40">
+                  {preferences.colorAnalysis.seasonalType}
+                </span>
+              )}
+            </h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {preferences.colorAnalysis!.bestColors!.map((c) => (
+                <span key={c.hex} className="flex items-center gap-1.5 rounded-full bg-cloud px-2.5 py-1 text-xs font-medium ring-1 ring-black/5">
+                  <span className="h-4 w-4 rounded-full ring-1 ring-black/10" style={{ backgroundColor: c.hex }} />
+                  {c.name}
+                </span>
+              ))}
+            </div>
+            {(preferences.colorAnalysis?.avoidColors?.length ?? 0) > 0 && (
+              <p className="mt-2.5 text-xs text-ink/50">
+                Better skipped: {preferences.colorAnalysis!.avoidColors!.map((c) => c.name).join(', ')}
+              </p>
+            )}
+          </div>
+        )}
+
         {result.generalAdvice && (
           <p className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/70 shadow-sm ring-1 ring-black/5">
             💡 {result.generalAdvice}
@@ -178,27 +206,6 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
             No outfits could be composed — try adding a few more items to your closet first.
           </p>
         )}
-
-        {(closet.length === 0 || result.outfits.some((o) => (o.missing?.length ?? 0) > 0)) && (() => {
-          const paletteColor = preferences.colorAnalysis?.bestColors?.[0]?.name ?? ''
-          const focus = preferences.wardrobeFocus === 'unisex' ? '' : `${preferences.wardrobeFocus} `
-          const modest = preferences.modestyStyle === 'hijabi' ? 'modest ' : ''
-          return (
-            <div className="space-y-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-              <h3 className="font-display text-lg font-semibold">Need inspiration? 🛍️</h3>
-              <InspirationRow
-                label="Top ideas"
-                query={`${paletteColor} ${modest}${focus}${result.occasionLabel} outfit top`.trim()}
-                fallbackQuery={`${paletteColor} kurta`.trim()}
-              />
-              <InspirationRow
-                label="Bottom ideas"
-                query={`${paletteColor} ${modest}${focus}${result.occasionLabel} outfit bottom skirt trousers`.trim()}
-                fallbackQuery={`${paletteColor} trousers`.trim()}
-              />
-            </div>
-          )
-        })()}
 
         {result.outfits.map((outfit, idx) => {
           const items = outfit.itemIds.map((id) => itemById.get(id)).filter((i): i is ClothingItem => Boolean(i))
@@ -241,6 +248,29 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
             </div>
           )
         })}
+
+        {/* Photo examples come last — the palette and real-closet outfits
+            above are always the first recommendations. */}
+        {(closet.length === 0 || result.outfits.some((o) => (o.missing?.length ?? 0) > 0)) && (() => {
+          const paletteColor = preferences.colorAnalysis?.bestColors?.[0]?.name ?? ''
+          const focus = preferences.wardrobeFocus === 'unisex' ? '' : `${preferences.wardrobeFocus} `
+          const modest = preferences.modestyStyle === 'hijabi' ? 'modest ' : ''
+          return (
+            <div className="space-y-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+              <h3 className="font-display text-lg font-semibold">Need inspiration? 🛍️</h3>
+              <InspirationRow
+                label="Top ideas"
+                query={`${paletteColor} ${modest}${focus}${result.occasionLabel} outfit top`.trim()}
+                fallbackQuery={`${paletteColor} kurta`.trim()}
+              />
+              <InspirationRow
+                label="Bottom ideas"
+                query={`${paletteColor} ${modest}${focus}${result.occasionLabel} outfit bottom skirt trousers`.trim()}
+                fallbackQuery={`${paletteColor} trousers`.trim()}
+              />
+            </div>
+          )
+        })()}
       </div>
     )
   }
