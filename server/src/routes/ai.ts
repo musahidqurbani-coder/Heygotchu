@@ -211,6 +211,25 @@ aiRouter.post(
     })
 
     await recordRun(req.userId!, 'outfits')
-    res.json({ ...result, occasionLabel })
+
+    // Resolve each outfit's item ids into full item snapshots server-side,
+    // so the client renders photos correctly even when its own closet state
+    // is stale (e.g. items added from another tab since sign-in).
+    const byId = new Map(items.map((i) => [i.id, i]))
+    const outfits = result.outfits.map((outfit) => ({
+      ...outfit,
+      items: outfit.itemIds
+        .map((id) => byId.get(id))
+        .filter((i): i is NonNullable<typeof i> => Boolean(i))
+        .map((i) => ({
+          id: i.id,
+          name: i.name,
+          category: i.category,
+          color: i.color,
+          photo: i.photo ?? undefined,
+        })),
+    }))
+
+    res.json({ outfits, generalAdvice: result.generalAdvice, occasionLabel })
   }),
 )

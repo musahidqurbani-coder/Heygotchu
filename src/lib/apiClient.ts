@@ -228,6 +228,9 @@ export interface ColorAnalysisResult {
 export interface OutfitIdeaResult {
   title: string
   itemIds: string[]
+  // Server-resolved snapshots of the referenced closet items — the reliable
+  // source for rendering, immune to stale client-side closet state.
+  items?: { id: string; name: string; category: string; color: string; photo?: string }[]
   missing?: { name: string; category: string; color?: string; reason: string }[]
   stylingTip: string
 }

@@ -208,7 +208,12 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
         )}
 
         {result.outfits.map((outfit, idx) => {
-          const items = outfit.itemIds.map((id) => itemById.get(id)).filter((i): i is ClothingItem => Boolean(i))
+          // Prefer the server-resolved item snapshots; fall back to matching
+          // ids against the locally loaded closet for older saved results.
+          const items =
+            outfit.items && outfit.items.length > 0
+              ? outfit.items
+              : outfit.itemIds.map((id) => itemById.get(id)).filter((i): i is ClothingItem => Boolean(i))
           return (
             <div key={idx} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
               <h3 className="font-display text-lg font-semibold">{outfit.title}</h3>
