@@ -120,8 +120,8 @@ export default function AuthGate() {
           onForgotPassword={() => setError("Password reset isn't set up yet — for now, contact support to reset your password.")}
         />
         {error && (
-          <div role="alert" className="mx-auto -mt-4 max-w-2xl px-4">
-            <div className="rounded-xl bg-coral/10 px-3.5 py-2.5 text-center text-sm font-medium text-coral">
+          <div role="alert" className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+            <div className="rounded-xl bg-white/95 px-4 py-2.5 text-center text-sm font-medium text-coral shadow-lg ring-1 ring-black/5 backdrop-blur">
               {error}
             </div>
           </div>

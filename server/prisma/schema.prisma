@@ -35,6 +35,9 @@ model User {
   // True once the user has verified their email via OTP — that's what
   // unlocks login.
   verified     Boolean  @default(false)
+  // 'user' | 'admin' — admins can see and manage every family account via
+  // the /admin routes and the frontend admin panel.
+  role         String   @default("user")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

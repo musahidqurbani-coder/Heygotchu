@@ -80,10 +80,10 @@ export default function LoginVideoScreen({
   const PASSWORD_FILL = '#dfe9f3'
 
   return (
-    <main className="mx-auto flex min-h-[80vh] flex-col items-center justify-center px-4 py-10">
+    <main className="fixed inset-0 overflow-hidden bg-gradient-to-b from-[#cfe0f2] via-[#dfe6ef] to-[#f4e3e0]">
       <div
-        className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-[#dfe6ef] shadow-sm ring-1 ring-black/5"
-        style={{ aspectRatio: '16 / 9', containerType: 'inline-size' } as React.CSSProperties}
+        className="login-video-stage"
+        style={{ containerType: 'inline-size' } as React.CSSProperties}
       >
         {!reducedMotion && !alreadySeen && (
           <video

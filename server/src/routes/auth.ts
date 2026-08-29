@@ -17,8 +17,8 @@ const signupSchema = z.object({
   password: z.string().min(8).max(200),
 })
 
-function publicUser(user: { id: string; email: string; verified: boolean }) {
-  return { id: user.id, email: user.email, verified: user.verified }
+function publicUser(user: { id: string; email: string; verified: boolean; role: string }) {
+  return { id: user.id, email: user.email, verified: user.verified, role: user.role }
 }
 
 authRouter.post(

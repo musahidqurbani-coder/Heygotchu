@@ -52,6 +52,7 @@ export interface PublicUser {
   id: string
   email: string
   verified: boolean
+  role: 'user' | 'admin'
 }
 
 export const authApi = {
@@ -124,6 +125,36 @@ export const eventsApi = {
     }).then((r) => r.plan),
   remove: (id: string) => request<void>(`/events/${id}`, { method: 'DELETE' }),
   occasionTypes: () => request<{ occasionTypes: OccasionType[] }>('/events/occasion-types').then((r) => r.occasionTypes),
+}
+
+// --- Admin (family management) ----------------------------------------------
+
+export interface AdminUserSummary {
+  id: string
+  email: string
+  verified: boolean
+  role: 'user' | 'admin'
+  createdAt: string
+  closetCount: number
+  planCount: number
+  hasPreferences: boolean
+}
+
+export interface AdminUserDetail {
+  id: string
+  email: string
+  verified: boolean
+  role: 'user' | 'admin'
+  createdAt: string
+  closet: { id: string; name: string; category: string; color: string; photo?: string; source: string; createdAt: string }[]
+  preferences: Record<string, unknown> | null
+  plans: { id: string; mode: string; title: string; createdAt: string }[]
+}
+
+export const adminApi = {
+  listUsers: () => request<{ users: AdminUserSummary[] }>('/admin/users').then((r) => r.users),
+  getUser: (id: string) => request<{ user: AdminUserDetail }>(`/admin/users/${id}`).then((r) => r.user),
+  removeUser: (id: string) => request<{ deleted: boolean }>(`/admin/users/${id}`, { method: 'DELETE' }),
 }
 
 // --- AI --------------------------------------------------------------------

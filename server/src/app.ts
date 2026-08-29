@@ -6,6 +6,7 @@ import { closetRouter } from './routes/closet'
 import { preferencesRouter } from './routes/preferences'
 import { eventsRouter } from './routes/events'
 import { aiRouter } from './routes/ai'
+import { adminRouter } from './routes/admin'
 import { imagesRouter } from './routes/images'
 import { vibeRouter } from './routes/vibe'
 import { errorHandler } from './middleware/errorHandler'
@@ -31,6 +32,7 @@ app.use('/closet', closetRouter)
 app.use('/preferences', preferencesRouter)
 app.use('/events', eventsRouter)
 app.use('/ai', aiRouter)
+app.use('/admin', adminRouter)
 app.use('/images', imagesRouter)
 app.use('/vibe', vibeRouter)
 

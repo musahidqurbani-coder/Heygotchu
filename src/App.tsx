@@ -16,8 +16,9 @@ import ClothingPreferencesPanel from './components/ClothingPreferencesPanel'
 import SavedTripsPanel from './components/SavedTripsPanel'
 import Toast from './components/Toast'
 import AuthGate from './components/AuthGate'
+import AdminPanel from './components/AdminPanel'
 
-type View = 'landing' | 'loading' | 'results' | 'closet' | 'preferences' | 'saved'
+type View = 'landing' | 'loading' | 'results' | 'closet' | 'preferences' | 'saved' | 'admin'
 
 const EMPTY_FORM: TripFormValues = {
   destination: '',
@@ -223,6 +224,8 @@ export default function App() {
         savedCount={trips.length}
         userEmail={user?.email}
         onLogout={logout}
+        isAdmin={user?.role === 'admin'}
+        onAdminClick={() => setView('admin')}
       />
 
       {view === 'landing' && (
@@ -289,6 +292,10 @@ export default function App() {
           onSave={handleSavePreferences}
           onBack={() => setView(currentTrip ? 'results' : 'landing')}
         />
+      )}
+
+      {view === 'admin' && user?.role === 'admin' && (
+        <AdminPanel onBack={() => setView('landing')} onToast={setToastMessage} />
       )}
 
       {view === 'saved' && (

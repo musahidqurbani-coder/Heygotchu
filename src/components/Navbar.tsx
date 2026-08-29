@@ -8,6 +8,8 @@ interface NavbarProps {
   savedCount: number
   userEmail?: string
   onLogout?: () => void
+  isAdmin?: boolean
+  onAdminClick?: () => void
 }
 
 export default function Navbar({
@@ -18,6 +20,8 @@ export default function Navbar({
   savedCount,
   userEmail,
   onLogout,
+  isAdmin,
+  onAdminClick,
 }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-black/5 bg-cloud/80 backdrop-blur-md">
@@ -55,6 +59,14 @@ export default function Navbar({
               </span>
             )}
           </button>
+          {isAdmin && onAdminClick && (
+            <button
+              onClick={onAdminClick}
+              className="rounded-full bg-ink px-3 py-2 text-sm font-medium text-white transition hover:opacity-85 focus:outline-none focus-visible:ring-2 focus-visible:ring-coral sm:px-4"
+            >
+              Admin
+            </button>
+          )}
           {onLogout && (
             <button
               onClick={onLogout}

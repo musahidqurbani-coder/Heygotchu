@@ -63,3 +63,22 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Full-screen login video. The 16:9 stage keeps the invisible form aligned
+   to the artwork the video draws, so instead of resizing the video freely we
+   scale the whole stage: on wide screens it covers the entire viewport
+   (edges crop slightly), on narrow/portrait screens it letterboxes at full
+   width so the drawn email/password boxes always stay on screen. */
+.login-video-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  aspect-ratio: 16 / 9;
+  width: 100vw;
+}
+@media (min-aspect-ratio: 3/2) {
+  .login-video-stage {
+    width: max(100vw, 177.78vh);
+  }
+}
