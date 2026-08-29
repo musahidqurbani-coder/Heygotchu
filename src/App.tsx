@@ -17,6 +17,8 @@ import SavedTripsPanel from './components/SavedTripsPanel'
 import Toast from './components/Toast'
 import AuthGate from './components/AuthGate'
 import AdminPanel from './components/AdminPanel'
+import OccasionPlanner from './components/OccasionPlanner'
+import SelfieOnboarding from './components/SelfieOnboarding'
 
 type View = 'landing' | 'loading' | 'results' | 'closet' | 'preferences' | 'saved' | 'admin'
 
@@ -44,6 +46,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [dataLoaded, setDataLoaded] = useState(false)
+  const [planMode, setPlanMode] = useState<'trip' | 'occasion'>('trip')
+  const [selfiePromptDismissed, setSelfiePromptDismissed] = useState(false)
 
   function friendlyError(e: unknown): string {
     return e instanceof ApiClientError ? e.message : 'Something went wrong. Please try again.'
@@ -214,8 +218,29 @@ export default function App() {
     )
   }
 
+  const selfiePromptKey = user ? `heygotchu.selfiePromptSeen.${user.id}` : null
+  const showSelfiePrompt =
+    !selfiePromptDismissed &&
+    !preferences.colorAnalysis &&
+    Boolean(selfiePromptKey) &&
+    localStorage.getItem(selfiePromptKey!) !== '1'
+
   return (
     <div className="min-h-screen">
+      {showSelfiePrompt && (
+        <SelfieOnboarding
+          onDone={(analysis) => {
+            setSelfiePromptDismissed(true)
+            try {
+              if (selfiePromptKey) localStorage.setItem(selfiePromptKey, '1')
+            } catch { /* private mode — the prompt just reappears next visit */ }
+            if (analysis) {
+              setPreferences((prev) => ({ ...prev, colorAnalysis: analysis }))
+              setToastMessage('Color palette saved — outfit ideas will use it ✨')
+            }
+          }}
+        />
+      )}
       <Navbar
         onLogoClick={() => setView('landing')}
         onClosetClick={() => setView('closet')}
@@ -249,16 +274,41 @@ export default function App() {
             </div>
           )}
 
-          <div className="mt-10">
-            <TripForm
-              initial={formValues}
-              closetSize={closet.length}
-              moreCoverage={preferences.moreCoverage}
-              onSubmit={(values) => void generateTrip(values)}
-              onGoToCloset={() => setView('closet')}
-              onGoToPreferences={() => setView('preferences')}
-            />
+          <div className="mt-8 flex justify-center">
+            <div className="inline-flex rounded-full bg-white p-1 shadow-sm ring-1 ring-black/5">
+              <button
+                onClick={() => setPlanMode('trip')}
+                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                  planMode === 'trip' ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink'
+                }`}
+              >
+                ✈️ Trip
+              </button>
+              <button
+                onClick={() => setPlanMode('occasion')}
+                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                  planMode === 'occasion' ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink'
+                }`}
+              >
+                🎉 Occasion
+              </button>
+            </div>
           </div>
+
+          {planMode === 'trip' ? (
+            <div className="mt-8">
+              <TripForm
+                initial={formValues}
+                closetSize={closet.length}
+                moreCoverage={preferences.moreCoverage}
+                onSubmit={(values) => void generateTrip(values)}
+                onGoToCloset={() => setView('closet')}
+                onGoToPreferences={() => setView('preferences')}
+              />
+            </div>
+          ) : (
+            <OccasionPlanner closet={closet} onToast={setToastMessage} />
+          )}
         </main>
       )}
 

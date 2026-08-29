@@ -133,7 +133,7 @@ export default function AuthGate() {
   return (
     <main className="mx-auto flex min-h-[80vh] max-w-md flex-col justify-center px-4 py-10 sm:px-8">
       <div className="mb-6 text-center">
-        <img src={logo} alt="Heygotchu" className="mx-auto h-36 w-36 rounded-2xl object-cover shadow-sm sm:h-40 sm:w-40" />
+        <img src={logo} alt="Heygotchu" className="mx-auto h-[151px] w-[151px] rounded-2xl object-cover shadow-sm sm:h-[168px] sm:w-[168px]" />
         <p className="mt-1 text-sm text-ink/55">
           {verify ? 'Verify your account' : screen === 'signup' ? 'Create your account' : 'Welcome back'}
         </p>

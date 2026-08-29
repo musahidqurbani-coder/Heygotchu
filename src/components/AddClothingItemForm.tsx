@@ -26,6 +26,7 @@ import {
   type WarmthLevel,
 } from '../types'
 import { resizeImageFile } from '../lib/imageResize'
+import { aiApi, ApiClientError } from '../lib/apiClient'
 
 const SLEEVE_LABEL: Record<SleeveLength, string> = {
   sleeveless: 'Sleeveless',
@@ -78,6 +79,9 @@ export default function AddClothingItemForm({ onAdd, onClose }: AddClothingItemF
   const [tags, setTags] = useState<string[]>([])
   const [photo, setPhoto] = useState<string | undefined>(undefined)
   const [nameError, setNameError] = useState<string | undefined>(undefined)
+  const [aiTagging, setAiTagging] = useState(false)
+  const [aiNote, setAiNote] = useState<string | undefined>(undefined)
+  const [source, setSource] = useState<'manual' | 'ai-tagged'>('manual')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Coverage & fit — honest attributes describing the garment itself. These
@@ -114,6 +118,45 @@ export default function AddClothingItemForm({ onAdd, onClose }: AddClothingItemF
     } catch {
       // ignore — item can still be saved without a photo
     }
+
+    // AI auto-tag: read the photo and prefill every field it can — the user
+    // reviews and adjusts rather than typing everything by hand.
+    setAiTagging(true)
+    setAiNote(undefined)
+    try {
+      const tagged = await aiApi.tagPhoto(file)
+      if (tagged.name) setName(tagged.name)
+      if (CLOTHING_CATEGORIES.includes(tagged.category as ClothingCategory)) setCategory(tagged.category as ClothingCategory)
+      if (CLOTHING_GENDERS.includes(tagged.gender as ClothingGender)) setGender(tagged.gender as ClothingGender)
+      if (/^#[0-9a-fA-F]{6}$/.test(tagged.color)) setColor(tagged.color.toLowerCase())
+      if (WARMTH_LEVELS.includes(tagged.warmth as WarmthLevel)) setWarmth(tagged.warmth as WarmthLevel)
+      if (FORMALITY_LEVELS.includes(tagged.formality as Formality)) setFormality(tagged.formality as Formality)
+      setWeatherproof(Boolean(tagged.weatherproof))
+      setTags(tagged.tags.filter((t) => TAG_OPTIONS.includes(t)))
+      const cov = tagged.coverage as CoverageProfile | undefined
+      if (cov) {
+        if (cov.sleeveLength && SLEEVE_LENGTHS.includes(cov.sleeveLength)) setSleeveLength(cov.sleeveLength)
+        if (typeof cov.strapless === 'boolean') setStrapless(cov.strapless)
+        if (typeof cov.backless === 'boolean') setBackless(cov.backless)
+        if (cov.neckline && NECKLINE_DEPTHS.includes(cov.neckline)) setNeckline(cov.neckline)
+        if (cov.bottomStyle && BOTTOM_STYLES.includes(cov.bottomStyle)) setBottomStyle(cov.bottomStyle)
+        if (cov.hemLength && HEM_LENGTHS.includes(cov.hemLength)) setHemLength(cov.hemLength)
+        if (cov.fit && FIT_STYLES.includes(cov.fit)) setFit(cov.fit)
+        if (cov.pieceCount && PIECE_COUNTS.includes(cov.pieceCount)) setPieceCount(cov.pieceCount)
+        if (cov.swimStyle && SWIM_STYLES.includes(cov.swimStyle)) setSwimStyle(cov.swimStyle)
+      }
+      setSource('ai-tagged')
+      setAiNote('✨ Details filled in from your photo — review and adjust anything before saving.')
+      if (nameError) setNameError(undefined)
+    } catch (err) {
+      setAiNote(
+        err instanceof ApiClientError && (err.status === 429 || err.status === 503)
+          ? err.message
+          : 'AI tagging is unavailable right now — fill in the details manually.',
+      )
+    } finally {
+      setAiTagging(false)
+    }
   }
 
   function handleSubmit(e: FormEvent) {
@@ -146,7 +189,7 @@ export default function AddClothingItemForm({ onAdd, onClose }: AddClothingItemF
       weatherproof,
       tags,
       photo,
-      source: 'manual',
+      source,
       coverage: Object.keys(coverage).length > 0 ? coverage : undefined,
     })
     onClose()
@@ -184,6 +227,15 @@ export default function AddClothingItemForm({ onAdd, onClose }: AddClothingItemF
           {nameError && <p className="mt-1 text-xs font-medium text-coral">{nameError}</p>}
         </div>
       </div>
+
+      {aiTagging && (
+        <p className="rounded-xl bg-sky/10 px-3.5 py-2.5 text-sm font-medium text-sky">
+          ✨ Reading your photo — the details below will fill in automatically…
+        </p>
+      )}
+      {aiNote && !aiTagging && (
+        <p className="rounded-xl bg-mint/15 px-3.5 py-2.5 text-sm text-ink/70">{aiNote}</p>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div>

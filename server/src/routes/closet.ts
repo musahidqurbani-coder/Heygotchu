@@ -77,10 +77,28 @@ closetRouter.get(
   }),
 )
 
+// Per-user storage quota: item photos are stored as data URLs in the
+// database, so usage is just the total length of those strings. Admins are
+// exempt.
+const USER_STORAGE_LIMIT_BYTES = 1024 * 1024 * 1024 // 1 GB
+
+async function assertStorageQuota(userId: string, incomingBytes: number): Promise<void> {
+  if (incomingBytes === 0) return
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (user?.role === 'admin') return
+  const rows = await prisma.$queryRaw<{ used: bigint | number | null }[]>`
+    SELECT COALESCE(SUM(LENGTH("photo")), 0) AS used FROM "ClothingItem" WHERE "userId" = ${userId}`
+  const used = Number(rows[0]?.used ?? 0)
+  if (used + incomingBytes > USER_STORAGE_LIMIT_BYTES) {
+    throw new ApiError(413, "You've reached your 1 GB photo storage limit — delete some items with photos to free up space.")
+  }
+}
+
 closetRouter.post(
   '/',
   asyncHandler(async (req, res) => {
     const data = itemSchema.parse(req.body)
+    await assertStorageQuota(req.userId!, data.photo?.length ?? 0)
     const row = await prisma.clothingItem.create({
       data: {
         ...data,

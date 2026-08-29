@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { env, isClaudeConfigured } from '../env'
 
-const MODEL = 'claude-sonnet-4-5'
+const MODEL = 'claude-opus-5'
 
 let client: Anthropic | null = null
 function getClient(): Anthropic {
@@ -98,6 +98,185 @@ export async function tagClothingPhoto(base64Image: string, mediaType: string): 
     throw new Error('Claude did not return structured item data.')
   }
   return toolUse.input as TaggedClothingItem
+}
+
+// --- Selfie color-palette analysis ------------------------------------------
+// Vision call used by the optional onboarding step: from a selfie, derive a
+// personal color palette (undertone/depth + best colors) that outfit
+// suggestions can use. The photo itself is analyzed in-memory and never
+// stored — only this derived palette is saved into the user's preferences.
+// The prompt is deliberately narrow: coloring only, no comments on identity,
+// age, ethnicity, or appearance beyond color analysis.
+
+const COLOR_ANALYSIS_TOOL: Anthropic.Tool = {
+  name: 'record_color_analysis',
+  description: 'Record a personal color-palette analysis derived from the photo.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      ok: { type: 'boolean', description: 'False if no person is clearly visible enough to analyze coloring.' },
+      undertone: { type: 'string', enum: ['warm', 'cool', 'neutral'] },
+      depth: { type: 'string', enum: ['light', 'medium', 'deep'] },
+      seasonalType: { type: 'string', description: 'A friendly seasonal-color label, e.g. "Warm Autumn", "Cool Summer".' },
+      bestColors: {
+        type: 'array',
+        maxItems: 8,
+        items: {
+          type: 'object',
+          properties: { hex: { type: 'string' }, name: { type: 'string' } },
+          required: ['hex', 'name'],
+        },
+        description: '6-8 flattering clothing colors for this coloring.',
+      },
+      avoidColors: {
+        type: 'array',
+        maxItems: 4,
+        items: {
+          type: 'object',
+          properties: { hex: { type: 'string' }, name: { type: 'string' } },
+          required: ['hex', 'name'],
+        },
+        description: '2-4 clothing colors that tend to clash with this coloring.',
+      },
+      summary: { type: 'string', description: 'One warm, encouraging sentence about the palette (the colors, not the person).' },
+    },
+    required: ['ok'],
+  },
+}
+
+export interface ColorAnalysis {
+  ok: boolean
+  undertone?: 'warm' | 'cool' | 'neutral'
+  depth?: 'light' | 'medium' | 'deep'
+  seasonalType?: string
+  bestColors?: { hex: string; name: string }[]
+  avoidColors?: { hex: string; name: string }[]
+  summary?: string
+}
+
+export async function analyzeSelfieColors(base64Image: string, mediaType: string): Promise<ColorAnalysis> {
+  const anthropic = getClient()
+  const message = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    tools: [COLOR_ANALYSIS_TOOL],
+    tool_choice: { type: 'tool', name: 'record_color_analysis' },
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: mediaType as 'image/jpeg', data: base64Image },
+          },
+          {
+            type: 'text',
+            text: 'This is a selfie a person shared to get a personal clothing color palette. Analyze ONLY their general coloring (skin undertone and depth, and hair/eye color where visible) and call record_color_analysis with a flattering palette of clothing colors. Do not identify the person, and make no comments about identity, age, ethnicity, attractiveness, or anything beyond color analysis. If no person is clearly visible, call the tool with ok=false.',
+          },
+        ],
+      },
+    ],
+  })
+  const toolUse = message.content.find((block) => block.type === 'tool_use')
+  if (!toolUse || toolUse.type !== 'tool_use') throw new Error('Claude did not return a color analysis.')
+  return toolUse.input as ColorAnalysis
+}
+
+// --- Occasion / location outfit ideas ---------------------------------------
+// Builds complete outfit combinations (top + bottom, or dress/one-piece) from
+// the user's real closet — referencing items by id — plus, when the closet
+// falls short, specific new pieces worth getting. Respects the same hard
+// coverage rules as everything else, and uses the saved color palette when
+// one exists.
+
+const OUTFITS_TOOL: Anthropic.Tool = {
+  name: 'record_outfits',
+  description: 'Record complete outfit combinations for the given occasion/location.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      outfits: {
+        type: 'array',
+        maxItems: 4,
+        items: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', description: 'Short outfit name, e.g. "Mehndi-ready pastels".' },
+            itemIds: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Ids of closet items making up this outfit (top+bottom or dress, plus outerwear/footwear/accessory if useful). Only use ids from the provided closet list.',
+            },
+            missing: {
+              type: 'array',
+              maxItems: 3,
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  category: { type: 'string', enum: ['top', 'bottom', 'dress', 'outerwear', 'footwear', 'swimwear', 'accessory'] },
+                  color: { type: 'string', description: 'Suggested hex color.' },
+                  reason: { type: 'string' },
+                },
+                required: ['name', 'category', 'reason'],
+              },
+              description: 'New pieces that would complete this outfit when the closet lacks them.',
+            },
+            stylingTip: { type: 'string', description: 'One short styling tip for this outfit.' },
+          },
+          required: ['title', 'itemIds', 'stylingTip'],
+        },
+      },
+      generalAdvice: { type: 'string', description: '1-2 sentences of overall guidance for this occasion.' },
+    },
+    required: ['outfits', 'generalAdvice'],
+  },
+}
+
+export interface OutfitIdea {
+  title: string
+  itemIds: string[]
+  missing?: { name: string; category: string; color?: string; reason: string }[]
+  stylingTip: string
+}
+
+export interface OutfitSuggestionContext {
+  occasionLabel: string
+  location?: string
+  dateISO?: string
+  modestyStyle: string
+  coveragePreference: string
+  wardrobeFocus: string
+  colorAnalysis?: { seasonalType?: string; bestColors?: { hex: string; name: string }[]; avoidColors?: { hex: string; name: string }[] }
+  closetLines: string[] // "id | name | category | color | formality | warmth | sleeve"
+}
+
+export async function suggestOutfitCombos(ctx: OutfitSuggestionContext): Promise<{ outfits: OutfitIdea[]; generalAdvice: string }> {
+  const anthropic = getClient()
+  const paletteText = ctx.colorAnalysis?.bestColors?.length
+    ? `Personal color palette (${ctx.colorAnalysis.seasonalType ?? 'custom'}): best colors ${ctx.colorAnalysis.bestColors.map((c) => `${c.name} ${c.hex}`).join(', ')}${ctx.colorAnalysis.avoidColors?.length ? `; avoid ${ctx.colorAnalysis.avoidColors.map((c) => c.name).join(', ')}` : ''}. Favor outfits in or near the best colors.`
+    : 'No personal color palette saved — pick colors that work well together for the occasion.'
+
+  const prompt = `Occasion: ${ctx.occasionLabel}${ctx.location ? ` in ${ctx.location}` : ''}${ctx.dateISO ? ` on ${ctx.dateISO}` : ''}.
+${paletteText}
+User preferences: modesty style ${ctx.modestyStyle}, coverage ${ctx.coveragePreference}, wardrobe focus ${ctx.wardrobeFocus}.
+
+Closet (each line is: id | name | category | color | formality | warmth | sleeve):
+${ctx.closetLines.map((l) => `- ${l}`).join('\n') || '(empty closet)'}
+
+Build up to 4 complete outfits for this occasion. Each outfit should be a wearable combination — a top plus a bottom, or a dress/one-piece — plus outerwear, footwear, or accessories from the closet when they help. Reference closet items ONLY by their exact ids. When the closet is missing a key piece for a great outfit, include it in "missing" with a suggested color (respecting the palette). Consider the occasion's cultural dress conventions (e.g. festive colors for Mehndi/Sangeet/Haldi, avoid plain black/white as the main color at Indian celebrations where inauspicious, subdued colors for funerals) and the likely weather for the location and date. Hard rules regardless of preferences: no sleeveless or strapless tops/dresses, no backless items, no deep necklines, dresses/skirts knee-length or longer, no above-knee shorts. If modesty style is "hijabi": full sleeves, high necklines, ankle-or-full lengths only, and include a hijab/scarf from the closet when one exists. Call record_outfits.`
+
+  const message = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    tools: [OUTFITS_TOOL],
+    tool_choice: { type: 'tool', name: 'record_outfits' },
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const toolUse = message.content.find((block) => block.type === 'tool_use')
+  if (!toolUse || toolUse.type !== 'tool_use') return { outfits: [], generalAdvice: '' }
+  return toolUse.input as { outfits: OutfitIdea[]; generalAdvice: string }
 }
 
 // --- Beyond-your-closet suggestions ----------------------------------------

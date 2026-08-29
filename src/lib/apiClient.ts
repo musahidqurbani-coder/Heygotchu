@@ -180,11 +180,34 @@ export interface SuggestedItemResult {
   reason: string
 }
 
+export interface ColorAnalysisResult {
+  ok: boolean
+  undertone?: 'warm' | 'cool' | 'neutral'
+  depth?: 'light' | 'medium' | 'deep'
+  seasonalType?: string
+  bestColors?: { hex: string; name: string }[]
+  avoidColors?: { hex: string; name: string }[]
+  summary?: string
+}
+
+export interface OutfitIdeaResult {
+  title: string
+  itemIds: string[]
+  missing?: { name: string; category: string; color?: string; reason: string }[]
+  stylingTip: string
+}
+
+export interface OutfitsResponse {
+  outfits: OutfitIdeaResult[]
+  generalAdvice: string
+  occasionLabel: string
+}
+
 export const aiApi = {
   tagPhoto: (file: File) => {
     const form = new FormData()
     form.append('photo', file)
-    return request<{ item: TaggedItemResult }>('/ai/tag-photo', { method: 'POST', body: form }, 30_000).then(
+    return request<{ item: TaggedItemResult }>('/ai/tag-photo', { method: 'POST', body: form }, 60_000).then(
       (r) => r.item,
     )
   },
@@ -193,4 +216,13 @@ export const aiApi = {
       method: 'POST',
       body: JSON.stringify({ contextLabel }),
     }).then((r) => r.suggestions),
+  analyzeSelfie: (file: File) => {
+    const form = new FormData()
+    form.append('selfie', file)
+    return request<{ analysis: ColorAnalysisResult }>('/ai/analyze-selfie', { method: 'POST', body: form }, 60_000).then(
+      (r) => r.analysis,
+    )
+  },
+  outfits: (payload: { occasionId?: string; occasionLabel?: string; location?: string; dateISO?: string }) =>
+    request<OutfitsResponse>('/ai/outfits', { method: 'POST', body: JSON.stringify(payload) }, 90_000),
 }

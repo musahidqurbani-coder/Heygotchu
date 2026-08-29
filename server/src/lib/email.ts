@@ -36,6 +36,15 @@ export async function sendOtpEmail(to: string, code: string): Promise<SendResult
     return { delivered: false, devCode: code }
   }
 
-  await sendViaResend(to, subject, text)
-  return { delivered: true }
+  try {
+    await sendViaResend(to, subject, text)
+    return { delivered: true }
+  } catch (err) {
+    // Resend can reject sends (e.g. an unverified domain can only email the
+    // account owner's own address). Signup must not break for everyone else,
+    // so fall back to dev-mode delivery — the code is returned in the API
+    // response and shown on screen — instead of failing the whole request.
+    console.error('[email] Resend send failed, falling back to on-screen code:', err)
+    return { delivered: false, devCode: code }
+  }
 }

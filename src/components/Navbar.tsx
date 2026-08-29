@@ -31,7 +31,7 @@ export default function Navbar({
           className="flex items-center gap-2 text-lg font-semibold tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-coral rounded-md"
           aria-label="Heygotchu home"
         >
-          <img src={logo} alt="" className="h-10 w-10 rounded-lg object-cover shadow-sm" />
+          <img src={logo} alt="" className="h-[42px] w-[42px] rounded-lg object-cover shadow-sm" />
           <span className="font-display text-xl">Heygotchu</span>
         </button>
 

@@ -150,7 +150,20 @@ export interface BodyMeasurements {
 export type ModestyStyle = 'hijabi' | 'non-hijabi' | 'no-preference'
 export const MODESTY_STYLES: ModestyStyle[] = ['hijabi', 'non-hijabi', 'no-preference']
 
+// Derived from an optional selfie during onboarding — only this palette is
+// ever stored; the photo itself is analyzed in memory and discarded.
+export interface ColorAnalysis {
+  ok: boolean
+  undertone?: 'warm' | 'cool' | 'neutral'
+  depth?: 'light' | 'medium' | 'deep'
+  seasonalType?: string
+  bestColors?: { hex: string; name: string }[]
+  avoidColors?: { hex: string; name: string }[]
+  summary?: string
+}
+
 export interface ClothingPreferences {
+  colorAnalysis?: ColorAnalysis
   size: ClothingSize
   customSize?: string // used when size === 'custom'
   measurementsEnabled: boolean
