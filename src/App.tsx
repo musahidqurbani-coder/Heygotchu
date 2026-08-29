@@ -112,6 +112,25 @@ export default function App() {
     }
   }
 
+  async function handleBulkAddItems(items: Omit<ClothingItem, 'id' | 'createdAt'>[]) {
+    const created: ClothingItem[] = []
+    let failed = 0
+    for (const item of items) {
+      try {
+        created.push(await closetApi.create(item))
+      } catch {
+        failed += 1
+      }
+    }
+    if (created.length > 0) setCloset((prev) => [...prev, ...created])
+    setToastMessage(
+      failed === 0
+        ? `Added ${created.length} item${created.length === 1 ? '' : 's'} to your closet`
+        : `Added ${created.length}, but ${failed} failed — try those again`,
+    )
+    if (failed > 0) throw new Error('partial failure')
+  }
+
   async function handleLoadStarterCloset() {
     try {
       const starter = buildStarterCloset()
@@ -307,7 +326,7 @@ export default function App() {
               />
             </div>
           ) : (
-            <OccasionPlanner closet={closet} onToast={setToastMessage} />
+            <OccasionPlanner closet={closet} preferences={preferences} onToast={setToastMessage} />
           )}
         </main>
       )}
@@ -330,6 +349,7 @@ export default function App() {
           closet={closet}
           preferences={preferences}
           onAdd={handleAddClothingItem}
+          onBulkAdd={handleBulkAddItems}
           onDelete={handleDeleteClothingItem}
           onLoadStarter={handleLoadStarterCloset}
           onBack={() => setView(currentTrip ? 'results' : 'landing')}

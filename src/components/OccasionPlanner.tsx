@@ -1,16 +1,66 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ClothingItem } from '../types'
+import type { ClothingItem, ClothingPreferences } from '../types'
 import {
   aiApi,
   eventsApi,
+  imagesApi,
   ApiClientError,
+  type ExampleImage,
   type OccasionType,
   type OutfitsResponse,
 } from '../lib/apiClient'
 
 interface OccasionPlannerProps {
   closet: ClothingItem[]
+  preferences: ClothingPreferences
   onToast: (message: string) => void
+}
+
+// Inspiration strip shown when the closet can't fully dress the occasion:
+// up to 5 example photos each for tops and bottoms, matched to the user's
+// color palette. Falls back to an external image-search link when no image
+// provider is configured server-side.
+function InspirationRow({ label, query }: { label: string; query: string }) {
+  const [images, setImages] = useState<ExampleImage[] | null>(null)
+  const [unavailable, setUnavailable] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    imagesApi
+      .examples(query)
+      .then((ex) => { if (!cancelled) setImages(ex) })
+      .catch(() => { if (!cancelled) setUnavailable(true) })
+    return () => { cancelled = true }
+  }, [query])
+
+  const searchUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`
+
+  if (unavailable || (images && images.length === 0)) {
+    return (
+      <p className="text-sm text-ink/60">
+        {label}:{' '}
+        <a href={searchUrl} target="_blank" rel="noreferrer" className="font-semibold text-sky hover:underline">
+          see examples on Google Images →
+        </a>
+      </p>
+    )
+  }
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-ink/40">{label}</p>
+      {images === null ? (
+        <p className="text-xs text-ink/40">Finding examples…</p>
+      ) : (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {images.map((img, i) => (
+            <a key={i} href={img.pageUrl ?? img.url} target="_blank" rel="noreferrer" className="shrink-0">
+              <img src={img.thumb} alt={img.alt ?? label} className="h-28 w-20 rounded-xl object-cover ring-1 ring-black/10 transition hover:ring-coral" />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -25,7 +75,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 // The "Occasion" planning mode: pick an occasion (Sangeet, Haldi, Mehndi,
 // Eid, interviews, …), optionally a city and date, and get complete
 // AI-composed outfits from your own closet — plus what's worth adding.
-export default function OccasionPlanner({ closet, onToast }: OccasionPlannerProps) {
+export default function OccasionPlanner({ closet, preferences, onToast }: OccasionPlannerProps) {
   const [occasionTypes, setOccasionTypes] = useState<OccasionType[]>([])
   const [occasionId, setOccasionId] = useState('')
   const [location, setLocation] = useState('')
@@ -125,6 +175,18 @@ export default function OccasionPlanner({ closet, onToast }: OccasionPlannerProp
             No outfits could be composed — try adding a few more items to your closet first.
           </p>
         )}
+
+        {(closet.length === 0 || result.outfits.some((o) => (o.missing?.length ?? 0) > 0)) && (() => {
+          const paletteColor = preferences.colorAnalysis?.bestColors?.[0]?.name ?? ''
+          const focus = preferences.wardrobeFocus === 'unisex' ? '' : `${preferences.wardrobeFocus} `
+          return (
+            <div className="space-y-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+              <h3 className="font-display text-lg font-semibold">Need inspiration? 🛍️</h3>
+              <InspirationRow label="Top ideas" query={`${paletteColor} ${focus}${result.occasionLabel} outfit top`.trim()} />
+              <InspirationRow label="Bottom ideas" query={`${paletteColor} ${focus}${result.occasionLabel} outfit bottom skirt trousers`.trim()} />
+            </div>
+          )
+        })()}
 
         {result.outfits.map((outfit, idx) => {
           const items = outfit.itemIds.map((id) => itemById.get(id)).filter((i): i is ClothingItem => Boolean(i))

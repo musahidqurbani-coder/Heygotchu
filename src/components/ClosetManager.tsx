@@ -3,6 +3,7 @@ import type { ClothingCategory, ClothingItem, ClothingPreferences } from '../typ
 import { CLOTHING_CATEGORIES } from '../types'
 import ClothingItemCard from './ClothingItemCard'
 import AddClothingItemForm from './AddClothingItemForm'
+import BulkUploadModal from './BulkUploadModal'
 import Modal from './Modal'
 import EmptyState from './EmptyState'
 
@@ -10,13 +11,15 @@ interface ClosetManagerProps {
   closet: ClothingItem[]
   preferences: ClothingPreferences
   onAdd: (item: Omit<ClothingItem, 'id' | 'createdAt'>) => void
+  onBulkAdd: (items: Omit<ClothingItem, 'id' | 'createdAt'>[]) => Promise<void>
   onDelete: (id: string) => void
   onLoadStarter: () => void
   onBack: () => void
 }
 
-export default function ClosetManager({ closet, preferences, onAdd, onDelete, onLoadStarter, onBack }: ClosetManagerProps) {
+export default function ClosetManager({ closet, preferences, onAdd, onBulkAdd, onDelete, onLoadStarter, onBack }: ClosetManagerProps) {
   const [showAdd, setShowAdd] = useState(false)
+  const [showBulk, setShowBulk] = useState(false)
   const [filter, setFilter] = useState<ClothingCategory | 'all'>('all')
 
   const filtered = useMemo(
@@ -37,12 +40,20 @@ export default function ClosetManager({ closet, preferences, onAdd, onDelete, on
           <h1 className="font-display text-3xl font-semibold">My Closet</h1>
           <p className="text-sm text-ink/50">The clothes Heygotchu will build outfits from.</p>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
-        >
-          + Add item
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowBulk(true)}
+            className="rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink/70 shadow-sm ring-1 ring-black/10 transition hover:bg-cloud focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+          >
+            📸 Bulk upload
+          </button>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+          >
+            + Add item
+          </button>
+        </div>
       </div>
 
       {closet.length === 0 ? (
@@ -93,6 +104,8 @@ export default function ClosetManager({ closet, preferences, onAdd, onDelete, on
           <AddClothingItemForm onAdd={onAdd} onClose={() => setShowAdd(false)} />
         </Modal>
       )}
+
+      {showBulk && <BulkUploadModal onClose={() => setShowBulk(false)} onBulkAdd={onBulkAdd} />}
     </div>
   )
 }

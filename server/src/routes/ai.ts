@@ -5,7 +5,7 @@ import { prisma } from '../db'
 import { requireAuth } from '../middleware/auth'
 import { asyncHandler, ApiError } from '../middleware/errorHandler'
 import { env, isClaudeConfigured } from '../env'
-import { tagClothingPhoto, suggestBeyondCloset, analyzeSelfieColors, suggestOutfitCombos } from '../lib/claude'
+import { tagClothingPhoto, tagClothingPhotoMulti, suggestBeyondCloset, analyzeSelfieColors, suggestOutfitCombos } from '../lib/claude'
 import { findOccasion } from '../lib/occasions'
 import { DEFAULT_PREFERENCES_FALLBACK } from '../lib/defaultPreferences'
 
@@ -22,7 +22,7 @@ const upload = multer({
 // AI endpoints; admins are unlimited. The check runs before the (expensive)
 // Claude call; a run is only recorded after a successful one.
 
-const AI_DAILY_LIMIT = 3
+const AI_DAILY_LIMIT = 100
 
 async function aiRateLimit(req: Request, _res: Response, next: NextFunction) {
   try {
@@ -67,6 +67,26 @@ aiRouter.post(
     const tagged = await tagClothingPhoto(base64, req.file.mimetype)
     await recordRun(req.userId!, 'tag-photo')
     res.json({ item: tagged })
+  }),
+)
+
+// --- Multi-item photo tagging (bulk upload) ---------------------------------
+// One photo can hold a whole outfit — top, bottom, scarf, hat, jewelry —
+// and each detected piece comes back as its own item.
+
+aiRouter.post(
+  '/tag-photo-multi',
+  aiRateLimit,
+  upload.single('photo'),
+  asyncHandler(async (req, res) => {
+    requireClaude()
+    if (!req.file) throw new ApiError(400, 'No photo uploaded — send it as multipart form field "photo".')
+    if (!req.file.mimetype.startsWith('image/')) throw new ApiError(400, 'File must be an image.')
+
+    const base64 = req.file.buffer.toString('base64')
+    const items = await tagClothingPhotoMulti(base64, req.file.mimetype)
+    await recordRun(req.userId!, 'tag-photo-multi')
+    res.json({ items })
   }),
 )
 

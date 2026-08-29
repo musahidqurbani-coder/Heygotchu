@@ -100,6 +100,57 @@ export async function tagClothingPhoto(base64Image: string, mediaType: string): 
   return toolUse.input as TaggedClothingItem
 }
 
+// --- Multi-item photo tagging -----------------------------------------------
+// Same idea as tagClothingPhoto, but for photos that show a whole outfit or
+// several garments at once (top + bottom + scarf + hat + jewelry laid out or
+// worn): every distinct item is recorded separately so each lands in its own
+// closet section.
+
+const TAG_MULTI_TOOL: Anthropic.Tool = {
+  name: 'record_clothing_items',
+  description: 'Record every distinct clothing item visible in the photo, one entry per item.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      items: {
+        type: 'array',
+        maxItems: 8,
+        items: TAG_TOOL.input_schema.properties ? { type: 'object', properties: TAG_TOOL.input_schema.properties, required: ['name', 'category', 'gender', 'color', 'warmth', 'formality', 'weatherproof', 'tags'] } : { type: 'object' },
+      },
+    },
+    required: ['items'],
+  },
+}
+
+export async function tagClothingPhotoMulti(base64Image: string, mediaType: string): Promise<TaggedClothingItem[]> {
+  const anthropic = getClient()
+  const message = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 3072,
+    tools: [TAG_MULTI_TOOL],
+    tool_choice: { type: 'tool', name: 'record_clothing_items' },
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: mediaType as 'image/jpeg', data: base64Image },
+          },
+          {
+            type: 'text',
+            text: "This photo is from someone's closet and may show one clothing item or several (e.g. a full outfit with a top, bottom, scarf, hat, and jewelry). Record EVERY distinct garment or accessory as its own entry in record_clothing_items — a scarf, hat, or piece of jewelry belongs in the 'accessory' category with a descriptive name (e.g. \"Cream wool scarf\"), shoes in 'footwear'. Skip anything that isn't clothing. Do not describe or comment on any person, body, or face that may be visible — describe only the garments.",
+          },
+        ],
+      },
+    ],
+  })
+  const toolUse = message.content.find((block) => block.type === 'tool_use')
+  if (!toolUse || toolUse.type !== 'tool_use') throw new Error('Claude did not return structured item data.')
+  const input = toolUse.input as { items?: TaggedClothingItem[] }
+  return input.items ?? []
+}
+
 // --- Selfie color-palette analysis ------------------------------------------
 // Vision call used by the optional onboarding step: from a selfie, derive a
 // personal color palette (undertone/depth + best colors) that outfit

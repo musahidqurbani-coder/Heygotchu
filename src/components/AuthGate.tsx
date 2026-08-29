@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { ApiClientError } from '../lib/apiClient'
+import { ApiClientError, authApi } from '../lib/apiClient'
 import logo from '../assets/logo.jpg'
 import LoginVideoScreen from './LoginVideoScreen'
 
-type Screen = 'login' | 'signup' | 'verify'
+type Screen = 'login' | 'signup' | 'verify' | 'forgot'
 
 interface VerifyState {
   userId: string
@@ -25,6 +25,12 @@ export default function AuthGate() {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Forgot-password flow: request a code by email, then set a new password.
+  const [forgot, setForgot] = useState<VerifyState | null>(null)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [resetCode, setResetCode] = useState('')
+  const [newPassword, setNewPassword] = useState('')
 
   function friendlyError(e: unknown): string {
     if (e instanceof ApiClientError) return e.message
@@ -103,6 +109,41 @@ export default function AuthGate() {
     }
   }
 
+  async function handleForgotRequest(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await authApi.forgotPassword(forgotEmail.trim())
+      setForgot({ userId: res.userId, email: forgotEmail.trim(), devCode: res.devCode })
+    } catch (err) {
+      setError(friendlyError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleResetPassword(e: FormEvent) {
+    e.preventDefault()
+    if (!forgot) return
+    if (newPassword.length < 8) {
+      setError('New password must be at least 8 characters.')
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      await authApi.resetPassword(forgot.userId, resetCode.trim(), newPassword)
+      // Reset succeeded server-side; log in through the normal context flow
+      // so the app state updates exactly like any other login.
+      await login(forgot.email, newPassword)
+    } catch (err) {
+      setError(friendlyError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const inputClass =
     'w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-coral'
 
@@ -117,7 +158,7 @@ export default function AuthGate() {
           onSubmit={handleLogin}
           busy={busy}
           onGoSignup={() => { setScreen('signup'); setError(null) }}
-          onForgotPassword={() => setError("Password reset isn't set up yet — for now, contact support to reset your password.")}
+          onForgotPassword={() => { setScreen('forgot'); setError(null); setForgot(null); setForgotEmail(loginEmail) }}
         />
         {error && (
           <div role="alert" className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
@@ -135,7 +176,13 @@ export default function AuthGate() {
       <div className="mb-6 text-center">
         <img src={logo} alt="Heygotchu" className="mx-auto h-[151px] w-[151px] rounded-2xl object-cover shadow-sm sm:h-[168px] sm:w-[168px]" />
         <p className="mt-1 text-sm text-ink/55">
-          {verify ? 'Verify your account' : screen === 'signup' ? 'Create your account' : 'Welcome back'}
+          {verify
+            ? 'Verify your account'
+            : screen === 'forgot'
+              ? 'Reset your password'
+              : screen === 'signup'
+                ? 'Create your account'
+                : 'Welcome back'}
         </p>
       </div>
 
@@ -190,6 +237,85 @@ export default function AuthGate() {
               ← Back
             </button>
           </div>
+        ) : screen === 'forgot' ? (
+          forgot ? (
+            <form onSubmit={handleResetPassword} className="space-y-3">
+              <p className="text-sm text-ink/60">
+                We sent a 6-digit code to <strong>{forgot.email}</strong>. Enter it with your new password.
+              </p>
+              {forgot.devCode && (
+                <div className="rounded-xl bg-mint/15 px-3.5 py-2.5 text-sm text-ink/70">
+                  <strong>Heads up:</strong> email delivery isn't fully set up yet, so here's your code directly:{' '}
+                  <span className="font-mono font-semibold">{forgot.devCode}</span>
+                </div>
+              )}
+              <input
+                value={resetCode}
+                onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="123456"
+                inputMode="numeric"
+                autoFocus
+                className={`${inputClass} text-center font-mono text-lg tracking-[0.4em]`}
+              />
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ink/60" htmlFor="new-password">New password</label>
+                <input
+                  id="new-password"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={inputClass}
+                />
+                <p className="mt-1 text-xs text-ink/40">At least 8 characters.</p>
+              </div>
+              <button
+                type="submit"
+                disabled={busy || resetCode.length !== 6}
+                className="w-full rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+              >
+                {busy ? 'Resetting…' : 'Reset password & log in'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setForgot(null); setResetCode(''); setNewPassword(''); setError(null) }}
+                className="text-xs font-medium text-ink/40 hover:text-ink/60"
+              >
+                ← Back
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleForgotRequest} className="space-y-3">
+              <p className="text-sm text-ink/60">Enter your account email and we'll send a reset code.</p>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ink/60" htmlFor="forgot-email">Email address</label>
+                <input
+                  id="forgot-email"
+                  type="email"
+                  required
+                  autoFocus
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={busy}
+                className="w-full rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+              >
+                {busy ? 'Sending code…' : 'Send reset code'}
+              </button>
+              <p className="text-center text-xs text-ink/50">
+                Remembered it?{' '}
+                <button type="button" onClick={() => { setScreen('login'); setError(null) }} className="font-semibold text-ink hover:underline">
+                  Log in
+                </button>
+              </p>
+            </form>
+          )
         ) : screen === 'signup' ? (
           <form onSubmit={handleSignup} className="space-y-3">
             <div>

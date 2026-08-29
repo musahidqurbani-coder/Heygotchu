@@ -131,6 +131,60 @@ authRouter.post(
   }),
 )
 
+// --- Forgot password ---------------------------------------------------------
+// Reuses the OTP machinery: a code goes to the account email (or comes back
+// on-screen in dev-mode/fallback), then /reset-password swaps the hash.
+
+const forgotSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+})
+
+authRouter.post(
+  '/forgot-password',
+  asyncHandler(async (req, res) => {
+    const { email } = forgotSchema.parse(req.body)
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) throw new ApiError(404, 'No account found with this email.')
+
+    const { code, expiresAt } = await createOtp(user.id)
+    const result = await sendOtpEmail(user.email, code)
+    res.json({ sent: true, userId: user.id, delivered: result.delivered, expiresAt, devCode: result.devCode })
+  }),
+)
+
+const resetSchema = z.object({
+  userId: z.string().min(1),
+  code: z.string().length(6),
+  newPassword: z.string().min(8).max(200),
+})
+
+authRouter.post(
+  '/reset-password',
+  asyncHandler(async (req, res) => {
+    const { userId, code, newPassword } = resetSchema.parse(req.body)
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) throw new ApiError(404, 'Account not found.')
+
+    const result = await verifyOtp(userId, code)
+    if (!result.ok) {
+      const messages: Record<typeof result.reason, string> = {
+        'not-found': 'No pending code — request a new one.',
+        expired: 'This code has expired — request a new one.',
+        'too-many-attempts': 'Too many incorrect attempts — request a new one.',
+        incorrect: 'Incorrect code.',
+      }
+      throw new ApiError(400, messages[result.reason])
+    }
+
+    const passwordHash = await hashPassword(newPassword)
+    // Resetting via an emailed code also proves the address is real, so make
+    // sure the account is marked verified and log them straight in.
+    const updated = await prisma.user.update({ where: { id: userId }, data: { passwordHash, verified: true } })
+    const token = signAuthToken({ userId: updated.id })
+    res.json({ token, user: publicUser(updated) })
+  }),
+)
+
 authRouter.get(
   '/me',
   requireAuth,

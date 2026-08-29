@@ -77,6 +77,16 @@ export const authApi = {
       body: JSON.stringify({ email, password }),
     }),
   me: () => request<{ user: PublicUser }>('/auth/me'),
+  forgotPassword: (email: string) =>
+    request<{ sent: boolean; userId: string; delivered: boolean; devCode?: string; expiresAt: string }>(
+      '/auth/forgot-password',
+      { method: 'POST', body: JSON.stringify({ email }) },
+    ),
+  resetPassword: (userId: string, code: string, newPassword: string) =>
+    request<{ token: string; user: PublicUser }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ userId, code, newPassword }),
+    }),
 }
 
 // --- Closet --------------------------------------------------------------
@@ -125,6 +135,25 @@ export const eventsApi = {
     }).then((r) => r.plan),
   remove: (id: string) => request<void>(`/events/${id}`, { method: 'DELETE' }),
   occasionTypes: () => request<{ occasionTypes: OccasionType[] }>('/events/occasion-types').then((r) => r.occasionTypes),
+}
+
+// --- Inspiration images ------------------------------------------------------
+
+export interface ExampleImage {
+  thumb: string
+  url?: string
+  pageUrl?: string
+  alt?: string
+}
+
+export const imagesApi = {
+  // Returns up to 5 example photos for a query; throws a 404 ApiClientError
+  // when no image provider is configured server-side (callers fall back to
+  // an external search link).
+  examples: (query: string) =>
+    request<{ examples: ExampleImage[] }>(`/images/examples?query=${encodeURIComponent(query)}`).then(
+      (r) => r.examples,
+    ),
 }
 
 // --- Admin (family management) ----------------------------------------------
@@ -216,6 +245,13 @@ export const aiApi = {
       method: 'POST',
       body: JSON.stringify({ contextLabel }),
     }).then((r) => r.suggestions),
+  tagPhotoMulti: (file: File) => {
+    const form = new FormData()
+    form.append('photo', file)
+    return request<{ items: TaggedItemResult[] }>('/ai/tag-photo-multi', { method: 'POST', body: form }, 90_000).then(
+      (r) => r.items,
+    )
+  },
   analyzeSelfie: (file: File) => {
     const form = new FormData()
     form.append('selfie', file)
