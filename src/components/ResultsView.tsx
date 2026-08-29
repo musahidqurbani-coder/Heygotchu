@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { DayWeather, TripPlan } from '../types'
+import type { ClothingPreferences, DayWeather, TripPlan } from '../types'
+import InspirationRow, { buildInspirationQuery } from './InspirationRow'
 import { formatDateRange } from '../lib/dateUtils'
 import { fallbackImage } from '../lib/imageApi'
 import { SAMPLE_DESTINATIONS } from '../data/sampleDestinations'
@@ -13,6 +14,7 @@ import TravelIdeas from './TravelIdeas'
 
 interface ResultsViewProps {
   trip: TripPlan
+  preferences: ClothingPreferences
   saved: boolean
   onRegenerate: () => void
   onSave: () => void
@@ -25,7 +27,7 @@ function curatedPlaces(destination: string): string[] {
   return curated?.places ?? []
 }
 
-export default function ResultsView({ trip, saved, onRegenerate, onNewTrip, onSave, onToast }: ResultsViewProps) {
+export default function ResultsView({ trip, preferences, saved, onRegenerate, onNewTrip, onSave, onToast }: ResultsViewProps) {
   const [imgError, setImgError] = useState(false)
   const places = curatedPlaces(trip.destination)
   const weatherDays: DayWeather[] = trip.days
@@ -111,6 +113,21 @@ export default function ResultsView({ trip, saved, onRegenerate, onNewTrip, onSa
       <section className="mt-10 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5 sm:p-8">
         <h2 className="mb-4 font-display text-xl font-semibold">Packing List</h2>
         <PackingList entries={trip.packingList} gaps={trip.gaps} />
+      </section>
+
+      <section className="mt-10 space-y-3 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5 sm:p-8">
+        <h2 className="font-display text-xl font-semibold">Style inspiration 🛍️</h2>
+        {(() => {
+          const context = `${trip.destination} ${trip.vibes[0] ?? 'travel'}`
+          const top = buildInspirationQuery(preferences, context, 'top')
+          const bottom = buildInspirationQuery(preferences, context, 'bottom')
+          return (
+            <>
+              <InspirationRow label="Top ideas" query={top.query} fallbackQuery={top.fallback} />
+              <InspirationRow label="Bottom ideas" query={bottom.query} fallbackQuery={bottom.fallback} />
+            </>
+          )
+        })()}
       </section>
 
       <div className="sticky bottom-4 z-30 mt-10 flex flex-wrap items-center justify-center gap-3 rounded-full bg-white/90 p-3 shadow-xl ring-1 ring-black/5 backdrop-blur">

@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import PhotoLightbox from './PhotoLightbox'
+import InspirationRow, { buildInspirationQuery } from './InspirationRow'
 import type { ClothingItem, ClothingPreferences } from '../types'
 import {
   aiApi,
   eventsApi,
-  imagesApi,
   ApiClientError,
-  type ExampleImage,
   type OccasionType,
   type OutfitsResponse,
 } from '../lib/apiClient'
@@ -15,56 +14,6 @@ interface OccasionPlannerProps {
   closet: ClothingItem[]
   preferences: ClothingPreferences
   onToast: (message: string) => void
-}
-
-// Inspiration strip shown when the closet can't fully dress the occasion:
-// up to 5 example photos each for tops and bottoms, matched to the user's
-// color palette. Falls back to an external image-search link when no image
-// provider is configured server-side.
-function InspirationRow({ label, query, fallbackQuery }: { label: string; query: string; fallbackQuery?: string }) {
-  const [images, setImages] = useState<ExampleImage[] | null>(null)
-  const [unavailable, setUnavailable] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    imagesApi
-      .examples(query, fallbackQuery)
-      .then((ex) => { if (!cancelled) setImages(ex) })
-      .catch(() => { if (!cancelled) setUnavailable(true) })
-    return () => { cancelled = true }
-  }, [query, fallbackQuery])
-
-  const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`
-  const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}`
-
-  const searchLinks = (
-    <p className="mt-1.5 flex gap-4 text-xs">
-      <a href={pinterestUrl} target="_blank" rel="noreferrer" className="font-semibold text-coral hover:underline">
-        📌 More on Pinterest →
-      </a>
-      <a href={googleUrl} target="_blank" rel="noreferrer" className="font-semibold text-sky hover:underline">
-        More on Google Images →
-      </a>
-    </p>
-  )
-
-  return (
-    <div>
-      <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-ink/40">{label}</p>
-      {!unavailable && images === null ? (
-        <p className="text-xs text-ink/40">Finding examples…</p>
-      ) : !unavailable && images && images.length > 0 ? (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {images.map((img, i) => (
-            <a key={i} href={img.pageUrl ?? img.url} target="_blank" rel="noreferrer" className="shrink-0" title={img.alt}>
-              <img src={img.thumb} alt={img.alt ?? label} className="h-28 w-20 rounded-xl object-cover ring-1 ring-black/10 transition hover:ring-coral" />
-            </a>
-          ))}
-        </div>
-      ) : null}
-      {searchLinks}
-    </div>
-  )
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -264,24 +213,17 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
         })}
 
         {/* Photo examples come last — the palette and real-closet outfits
-            above are always the first recommendations. */}
-        {(closet.length === 0 || result.outfits.some((o) => (o.missing?.length ?? 0) > 0)) && (() => {
-          const paletteColor = preferences.colorAnalysis?.bestColors?.[0]?.name ?? ''
-          const focus = preferences.wardrobeFocus === 'unisex' ? '' : `${preferences.wardrobeFocus} `
-          const modest = preferences.modestyStyle === 'hijabi' ? 'modest ' : ''
+            above are always the first recommendations. Queries are built
+            from the user's preferences (palette, modesty, style), falling
+            back to just their gender + occasion when none are set. */}
+        {(() => {
+          const top = buildInspirationQuery(preferences, result.occasionLabel, 'top')
+          const bottom = buildInspirationQuery(preferences, result.occasionLabel, 'bottom')
           return (
             <div className="space-y-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-              <h3 className="font-display text-lg font-semibold">Need inspiration? 🛍️</h3>
-              <InspirationRow
-                label="Top ideas"
-                query={`${paletteColor} ${modest}${focus}${result.occasionLabel} outfit top`.trim()}
-                fallbackQuery={`${paletteColor} kurta`.trim()}
-              />
-              <InspirationRow
-                label="Bottom ideas"
-                query={`${paletteColor} ${modest}${focus}${result.occasionLabel} outfit bottom skirt trousers`.trim()}
-                fallbackQuery={`${paletteColor} trousers`.trim()}
-              />
+              <h3 className="font-display text-lg font-semibold">Style inspiration 🛍️</h3>
+              <InspirationRow label="Top ideas" query={top.query} fallbackQuery={top.fallback} />
+              <InspirationRow label="Bottom ideas" query={bottom.query} fallbackQuery={bottom.fallback} />
             </div>
           )
         })()}

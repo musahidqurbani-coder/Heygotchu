@@ -372,6 +372,7 @@ export default function App() {
       {view === 'results' && currentTrip && (
         <ResultsView
           trip={currentTrip}
+          preferences={preferences}
           saved={isTripSaved(currentTrip)}
           onRegenerate={handleRegenerate}
           onSave={handleSaveTrip}
