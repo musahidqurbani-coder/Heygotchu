@@ -25,7 +25,7 @@ export default function ClothingItemCard({ item, preferences, onDelete }: Clothi
       <button
         onClick={() => onDelete(item.id)}
         aria-label={`Remove ${item.name}`}
-        className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-ink/60 opacity-0 shadow transition group-hover:opacity-100 hover:bg-coral hover:text-white focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+        className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-ink/60 shadow transition hover:bg-coral hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-coral md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
       >
         ✕
       </button>

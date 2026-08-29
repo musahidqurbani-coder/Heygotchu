@@ -70,6 +70,9 @@ export interface TaggedClothingItem {
   // Present on multi-item tagging: where this item sits in the source photo
   // (normalized 0-1), so the client can crop it out into its own image.
   boundingBox?: { x: number; y: number; w: number; h: number }
+  // Multi-item tagging: the same physical garment already exists in the
+  // user's closet (e.g. the same kurta photographed with different bottoms).
+  alreadyInCloset?: boolean
 }
 
 export async function tagClothingPhoto(base64Image: string, mediaType: string): Promise<TaggedClothingItem> {
@@ -134,6 +137,11 @@ const TAG_MULTI_TOOL: Anthropic.Tool = {
               },
               required: ['x', 'y', 'w', 'h'],
             },
+            alreadyInCloset: {
+              type: 'boolean',
+              description:
+                "True if this garment is clearly the SAME physical item as one already listed in the user's closet (same type, color, and distinctive design) — not merely a similar style.",
+            },
           },
           required: ['name', 'category', 'gender', 'color', 'warmth', 'formality', 'weatherproof', 'tags', 'boundingBox'],
         },
@@ -143,8 +151,18 @@ const TAG_MULTI_TOOL: Anthropic.Tool = {
   },
 }
 
-export async function tagClothingPhotoMulti(base64Image: string, mediaType: string): Promise<TaggedClothingItem[]> {
+export async function tagClothingPhotoMulti(
+  base64Image: string,
+  mediaType: string,
+  closetSummary: string[] = [],
+): Promise<TaggedClothingItem[]> {
   const anthropic = getClient()
+  const closetBlock = closetSummary.length
+    ? `\n\nThe user's closet already contains these items (name | category | color):\n${closetSummary
+        .slice(0, 150)
+        .map((s) => `- ${s}`)
+        .join('\n')}\nIf a detected garment is clearly the SAME physical item as one of these (e.g. the same white kurta photographed again with different bottoms), still record it but set alreadyInCloset: true so it isn't added twice.`
+    : ''
   const message = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 3072,
@@ -160,7 +178,7 @@ export async function tagClothingPhotoMulti(base64Image: string, mediaType: stri
           },
           {
             type: 'text',
-            text: "This photo is from someone's closet and may show one clothing item or several (e.g. a full outfit with a top, bottom, scarf, hat, and jewelry). Record EVERY distinct garment or accessory as its own entry in record_clothing_items — a scarf, hat, or piece of jewelry belongs in the 'accessory' category with a descriptive name (e.g. \"Cream wool scarf\"), shoes in 'footwear'. Skip anything that isn't clothing. For each item give its boundingBox as fractions of the image (0-1) tightly around that garment plus a small margin, so it can be cropped into its own picture. Do not describe or comment on any person, body, or face that may be visible — describe only the garments.",
+            text: `This photo is from someone's closet and may show one clothing item or several (e.g. a full outfit with a top, bottom, scarf, hat, and jewelry). Record EVERY distinct garment or accessory as its own entry in record_clothing_items — a scarf, hat, or piece of jewelry belongs in the 'accessory' category with a descriptive name (e.g. "Cream wool scarf"), shoes in 'footwear'. Skip anything that isn't clothing. For each item give its boundingBox as fractions of the image (0-1) tightly around that garment plus a small margin, so it can be cropped into its own picture. Do not describe or comment on any person, body, or face that may be visible — describe only the garments.${closetBlock}`,
           },
         ],
       },
@@ -356,6 +374,71 @@ Build up to 4 complete outfits for this occasion. Each outfit should be a wearab
   const toolUse = message.content.find((block) => block.type === 'tool_use')
   if (!toolUse || toolUse.type !== 'tool_use') return { outfits: [], generalAdvice: '' }
   return toolUse.input as { outfits: OutfitIdea[]; generalAdvice: string }
+}
+
+// --- Mini travel itinerary ---------------------------------------------------
+// Day-by-day trip plan ideas sized to the vacation length — the "mini travel
+// planner" shown on every generated trip.
+
+const ITINERARY_TOOL: Anthropic.Tool = {
+  name: 'record_itinerary',
+  description: 'Record a day-by-day travel plan for the trip.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      overview: { type: 'string', description: '1-2 sentence overview of how the trip is paced.' },
+      days: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            day: { type: 'number', description: '1-based day number.' },
+            title: { type: 'string', description: 'Short theme for the day, e.g. "Old town & street food".' },
+            activities: {
+              type: 'array',
+              maxItems: 3,
+              items: { type: 'string' },
+              description: '2-3 concrete activity suggestions for this day.',
+            },
+            tip: { type: 'string', description: 'One practical tip for the day (timing, booking, what to carry).' },
+          },
+          required: ['day', 'title', 'activities'],
+        },
+      },
+    },
+    required: ['overview', 'days'],
+  },
+}
+
+export interface ItineraryDay {
+  day: number
+  title: string
+  activities: string[]
+  tip?: string
+}
+
+export async function suggestItinerary(ctx: {
+  destination: string
+  dayCount: number
+  vibes: string[]
+  startDate?: string
+}): Promise<{ overview: string; days: ItineraryDay[] }> {
+  const anthropic = getClient()
+  const message = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    tools: [ITINERARY_TOOL],
+    tool_choice: { type: 'tool', name: 'record_itinerary' },
+    messages: [
+      {
+        role: 'user',
+        content: `Plan a ${ctx.dayCount}-day trip to ${ctx.destination}${ctx.startDate ? ` starting ${ctx.startDate}` : ''}. Traveler interests: ${ctx.vibes.join(', ') || 'general sightseeing'}. Create exactly ${ctx.dayCount} days (day 1 = arrival day, last day = departure day — keep those lighter). Suggest real, well-known places and experiences for this destination where you know them; keep each activity to one short sentence. Call record_itinerary.`,
+      },
+    ],
+  })
+  const toolUse = message.content.find((block) => block.type === 'tool_use')
+  if (!toolUse || toolUse.type !== 'tool_use') throw new Error('Claude did not return an itinerary.')
+  return toolUse.input as { overview: string; days: ItineraryDay[] }
 }
 
 // --- Beyond-your-closet suggestions ----------------------------------------

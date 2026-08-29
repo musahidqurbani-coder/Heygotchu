@@ -203,6 +203,15 @@ export interface TaggedItemResult {
   // From multi-item tagging: where this item sits in the source photo
   // (fractions 0-1), so the client can crop it into its own image.
   boundingBox?: { x: number; y: number; w: number; h: number }
+  // The same physical garment already exists in the user's closet.
+  alreadyInCloset?: boolean
+}
+
+export interface ItineraryDayIdea {
+  day: number
+  title: string
+  activities: string[]
+  tip?: string
 }
 
 export interface SuggestedItemResult {
@@ -270,4 +279,9 @@ export const aiApi = {
   },
   outfits: (payload: { occasionId?: string; occasionLabel?: string; location?: string; dateISO?: string }) =>
     request<OutfitsResponse>('/ai/outfits', { method: 'POST', body: JSON.stringify(payload) }, 90_000),
+  itinerary: (payload: { destination: string; days: number; vibes: string[]; startDate?: string }) =>
+    request<{ overview: string; days: ItineraryDayIdea[] }>('/ai/itinerary', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 90_000),
 }

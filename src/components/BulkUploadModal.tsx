@@ -32,6 +32,63 @@ interface DetectedItem {
   draft: Omit<ClothingItem, 'id' | 'createdAt'>
   included: boolean
   sleeve?: string
+  // Why this row is unticked by default: the AI matched it to an existing
+  // closet item, or it duplicates another photo in this same batch.
+  dupNote?: string
+}
+
+// --- Batch-level duplicate detection ----------------------------------------
+// The same kurta photographed twice (once with jeans, once with shorts)
+// should land in the closet once. Same category + close color + similar
+// name = duplicate; the first occurrence wins.
+
+const NAME_STOPWORDS = new Set(['a', 'an', 'the', 'with', 'and', 'of', 'in'])
+
+function nameTokens(name: string): Set<string> {
+  return new Set(
+    name
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length > 2 && !NAME_STOPWORDS.has(t)),
+  )
+}
+
+function colorDistance(a: string, b: string): number {
+  const parse = (h: string) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(h.trim())
+    if (!m) return null
+    const v = parseInt(m[1], 16)
+    return [v >> 16, (v >> 8) & 0xff, v & 0xff]
+  }
+  const ra = parse(a)
+  const rb = parse(b)
+  if (!ra || !rb) return 999
+  return Math.sqrt((ra[0] - rb[0]) ** 2 + (ra[1] - rb[1]) ** 2 + (ra[2] - rb[2]) ** 2)
+}
+
+function looksLikeSameItem(a: Omit<ClothingItem, 'id' | 'createdAt'>, b: Omit<ClothingItem, 'id' | 'createdAt'>): boolean {
+  if (a.category !== b.category) return false
+  if (colorDistance(a.color, b.color) > 70) return false
+  const ta = nameTokens(a.name)
+  const tb = nameTokens(b.name)
+  let shared = 0
+  for (const t of ta) if (tb.has(t)) shared++
+  return shared >= 2 || (shared >= 1 && (a.name.toLowerCase().includes(b.name.toLowerCase()) || b.name.toLowerCase().includes(a.name.toLowerCase())))
+}
+
+function markBatchDuplicates(jobs: PhotoJob[]): PhotoJob[] {
+  const kept: Omit<ClothingItem, 'id' | 'createdAt'>[] = []
+  return jobs.map((job) => ({
+    ...job,
+    items: job.items.map((it) => {
+      if (!it.included) return it
+      if (kept.some((k) => looksLikeSameItem(k, it.draft))) {
+        return { ...it, included: false, dupNote: 'Duplicate in this batch' }
+      }
+      kept.push(it.draft)
+      return it
+    }),
+  }))
 }
 
 interface BulkUploadModalProps {
@@ -42,7 +99,8 @@ interface BulkUploadModalProps {
 function toDraft(tagged: TaggedItemResult, photo: string): DetectedItem {
   const coverage = (tagged.coverage ?? undefined) as CoverageProfile | undefined
   return {
-    included: true,
+    included: !tagged.alreadyInCloset,
+    dupNote: tagged.alreadyInCloset ? 'Already in closet' : undefined,
     sleeve: coverage?.sleeveLength,
     draft: {
       name: tagged.name || 'Clothing item',
@@ -129,6 +187,9 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
       }
     }
     await Promise.all([worker(), worker(), worker()])
+    // With every photo read, catch the same garment appearing across
+    // different photos in this batch (first occurrence stays ticked).
+    setJobs((prev) => markBatchDuplicates(prev))
     setProcessing(false)
   }
 
@@ -221,6 +282,11 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
                             style={{ backgroundColor: it.draft.color }}
                           />
                           <span className="min-w-0 flex-1 truncate text-sm font-medium">{it.draft.name}</span>
+                          {it.dupNote && (
+                            <span className="shrink-0 rounded-full bg-sun/25 px-2 py-0.5 text-[11px] font-semibold text-ink/60">
+                              {it.dupNote}
+                            </span>
+                          )}
                           <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold capitalize text-ink/60 ring-1 ring-black/10">
                             {it.draft.category}
                           </span>

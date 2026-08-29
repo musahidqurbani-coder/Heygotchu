@@ -9,6 +9,7 @@ import Itinerary from './Itinerary'
 import PackingList from './PackingList'
 import SaveTripButton from './SaveTripButton'
 import ShareButton from './ShareButton'
+import TravelIdeas from './TravelIdeas'
 
 interface ResultsViewProps {
   trip: TripPlan
@@ -93,6 +94,14 @@ export default function ResultsView({ trip, saved, onRegenerate, onNewTrip, onSa
       <section className="mt-8">
         <WeatherCard days={weatherDays} source={trip.weatherSource} />
       </section>
+
+      <TravelIdeas
+        tripId={trip.id}
+        destination={trip.destination}
+        dayCount={trip.days.length}
+        vibes={trip.vibes}
+        startDate={trip.startDate}
+      />
 
       <section className="mt-10">
         <h2 className="mb-4 font-display text-xl font-semibold">Itinerary</h2>

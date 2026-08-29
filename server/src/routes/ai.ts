@@ -5,7 +5,7 @@ import { prisma } from '../db'
 import { requireAuth } from '../middleware/auth'
 import { asyncHandler, ApiError } from '../middleware/errorHandler'
 import { env, isClaudeConfigured } from '../env'
-import { tagClothingPhoto, tagClothingPhotoMulti, suggestBeyondCloset, analyzeSelfieColors, suggestOutfitCombos } from '../lib/claude'
+import { tagClothingPhoto, tagClothingPhotoMulti, suggestBeyondCloset, analyzeSelfieColors, suggestOutfitCombos, suggestItinerary } from '../lib/claude'
 import { findOccasion } from '../lib/occasions'
 import { DEFAULT_PREFERENCES_FALLBACK } from '../lib/defaultPreferences'
 
@@ -83,10 +83,44 @@ aiRouter.post(
     if (!req.file) throw new ApiError(400, 'No photo uploaded — send it as multipart form field "photo".')
     if (!req.file.mimetype.startsWith('image/')) throw new ApiError(400, 'File must be an image.')
 
+    const closet = await prisma.clothingItem.findMany({
+      where: { userId: req.userId },
+      select: { name: true, category: true, color: true },
+    })
     const base64 = req.file.buffer.toString('base64')
-    const items = await tagClothingPhotoMulti(base64, req.file.mimetype)
+    const items = await tagClothingPhotoMulti(
+      base64,
+      req.file.mimetype,
+      closet.map((i) => `${i.name} | ${i.category} | ${i.color}`),
+    )
     await recordRun(req.userId!, 'tag-photo-multi')
     res.json({ items })
+  }),
+)
+
+// --- Mini travel itinerary ---------------------------------------------------
+
+const itinerarySchema = z.object({
+  destination: z.string().trim().min(1).max(120),
+  days: z.number().int().min(1).max(30),
+  vibes: z.array(z.string().trim().max(40)).max(10).default([]),
+  startDate: z.string().trim().max(20).optional(),
+})
+
+aiRouter.post(
+  '/itinerary',
+  aiRateLimit,
+  asyncHandler(async (req, res) => {
+    requireClaude()
+    const body = itinerarySchema.parse(req.body)
+    const plan = await suggestItinerary({
+      destination: body.destination,
+      dayCount: body.days,
+      vibes: body.vibes,
+      startDate: body.startDate,
+    })
+    await recordRun(req.userId!, 'itinerary')
+    res.json(plan)
   }),
 )
 
