@@ -1,0 +1,98 @@
+// Heygotchu backend schema.
+//
+// Design notes:
+// - Every user-owned table carries a `userId` foreign key with `onDelete:
+//   Cascade`, and every route that reads/writes them filters by the
+//   authenticated user's id — that's what keeps each account's closet,
+//   preferences, and saved plans fully isolated from every other account.
+// - `ClothingItem.tags` / `.coverage`, `ClothingPreferences.data`, and
+//   `EventPlan.data` are stored as `String` columns holding JSON-serialized
+//   text (see the serialize/deserialize helpers next to each route), rather
+//   than Prisma's native `Json` scalar or fully relational columns. This is
+//   a deliberate choice: it lets the API mirror the frontend's existing
+//   TypeScript shapes (CoverageProfile, ClothingPreferences, TripPlan,
+//   OccasionPlan) closely without a large relational migration, and —
+//   unlike Prisma's `Json` type, which SQLite's connector doesn't support at
+//   all — plain `String` columns behave identically on SQLite (used for
+//   local development) and PostgreSQL (the shipped target), so what's
+//   tested locally is the same code path that runs in production.
+// - `EventPlan` covers BOTH destination trips and occasions via `mode`
+//   ('destination' | 'occasion'); the full plan payload is stored as JSON.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  // True once the user has verified their email via OTP — that's what
+  // unlocks login.
+  verified     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  otpCodes    OtpCode[]
+  closetItems ClothingItem[]
+  preferences ClothingPreferences?
+  eventPlans  EventPlan[]
+}
+
+model OtpCode {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model ClothingItem {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  category     String
+  gender       String
+  color        String
+  warmth       String
+  formality    String
+  weatherproof Boolean  @default(false)
+  tags         String // JSON-serialized string[]
+  coverage     String? // JSON-serialized CoverageProfile
+  photo        String? // data URL, optional
+  source       String   @default("manual") // 'manual' | 'ai-tagged'
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ClothingPreferences {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      String // JSON-serialized ClothingPreferences object
+  updatedAt DateTime @updatedAt
+}
+
+model EventPlan {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode      String // 'destination' | 'occasion'
+  title     String // destination name, or occasion type/label — for list views
+  data      String // JSON-serialized TripPlan or OccasionPlan payload
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
