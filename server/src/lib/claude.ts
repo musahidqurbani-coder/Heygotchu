@@ -67,6 +67,9 @@ export interface TaggedClothingItem {
   weatherproof: boolean
   tags: string[]
   coverage?: Record<string, unknown>
+  // Present on multi-item tagging: where this item sits in the source photo
+  // (normalized 0-1), so the client can crop it out into its own image.
+  boundingBox?: { x: number; y: number; w: number; h: number }
 }
 
 export async function tagClothingPhoto(base64Image: string, mediaType: string): Promise<TaggedClothingItem> {
@@ -115,7 +118,25 @@ const TAG_MULTI_TOOL: Anthropic.Tool = {
       items: {
         type: 'array',
         maxItems: 8,
-        items: TAG_TOOL.input_schema.properties ? { type: 'object', properties: TAG_TOOL.input_schema.properties, required: ['name', 'category', 'gender', 'color', 'warmth', 'formality', 'weatherproof', 'tags'] } : { type: 'object' },
+        items: {
+          type: 'object',
+          properties: {
+            ...(TAG_TOOL.input_schema.properties as Record<string, unknown>),
+            boundingBox: {
+              type: 'object',
+              description:
+                "This item's location in the image, as fractions of the full image size (0-1): x/y is the top-left corner, w/h the box size. Include a little margin around the garment.",
+              properties: {
+                x: { type: 'number' },
+                y: { type: 'number' },
+                w: { type: 'number' },
+                h: { type: 'number' },
+              },
+              required: ['x', 'y', 'w', 'h'],
+            },
+          },
+          required: ['name', 'category', 'gender', 'color', 'warmth', 'formality', 'weatherproof', 'tags', 'boundingBox'],
+        },
       },
     },
     required: ['items'],
@@ -139,7 +160,7 @@ export async function tagClothingPhotoMulti(base64Image: string, mediaType: stri
           },
           {
             type: 'text',
-            text: "This photo is from someone's closet and may show one clothing item or several (e.g. a full outfit with a top, bottom, scarf, hat, and jewelry). Record EVERY distinct garment or accessory as its own entry in record_clothing_items — a scarf, hat, or piece of jewelry belongs in the 'accessory' category with a descriptive name (e.g. \"Cream wool scarf\"), shoes in 'footwear'. Skip anything that isn't clothing. Do not describe or comment on any person, body, or face that may be visible — describe only the garments.",
+            text: "This photo is from someone's closet and may show one clothing item or several (e.g. a full outfit with a top, bottom, scarf, hat, and jewelry). Record EVERY distinct garment or accessory as its own entry in record_clothing_items — a scarf, hat, or piece of jewelry belongs in the 'accessory' category with a descriptive name (e.g. \"Cream wool scarf\"), shoes in 'footwear'. Skip anything that isn't clothing. For each item give its boundingBox as fractions of the image (0-1) tightly around that garment plus a small margin, so it can be cropped into its own picture. Do not describe or comment on any person, body, or face that may be visible — describe only the garments.",
           },
         ],
       },
@@ -190,6 +211,12 @@ const COLOR_ANALYSIS_TOOL: Anthropic.Tool = {
         description: '2-4 clothing colors that tend to clash with this coloring.',
       },
       summary: { type: 'string', description: 'One warm, encouraging sentence about the palette (the colors, not the person).' },
+      wardrobeDepartment: {
+        type: 'string',
+        enum: ['women', 'men', 'unspecified'],
+        description:
+          "Which clothing department appears to suit this person, judged from overall presentation — used only as a default for clothing searches, and the user can change it anytime. Use 'unspecified' when unsure.",
+      },
     },
     required: ['ok'],
   },
@@ -203,6 +230,7 @@ export interface ColorAnalysis {
   bestColors?: { hex: string; name: string }[]
   avoidColors?: { hex: string; name: string }[]
   summary?: string
+  wardrobeDepartment?: 'women' | 'men' | 'unspecified'
 }
 
 export async function analyzeSelfieColors(base64Image: string, mediaType: string): Promise<ColorAnalysis> {
@@ -222,7 +250,7 @@ export async function analyzeSelfieColors(base64Image: string, mediaType: string
           },
           {
             type: 'text',
-            text: 'This is a selfie a person shared to get a personal clothing color palette. Analyze ONLY their general coloring (skin undertone and depth, and hair/eye color where visible) and call record_color_analysis with a flattering palette of clothing colors. Do not identify the person, and make no comments about identity, age, ethnicity, attractiveness, or anything beyond color analysis. If no person is clearly visible, call the tool with ok=false.',
+            text: "This is a selfie a person shared to get a personal clothing color palette. Analyze ONLY their general coloring (skin undertone and depth, and hair/eye color where visible) and call record_color_analysis with a flattering palette of clothing colors. Also set wardrobeDepartment to the clothing department ('women' or 'men') their overall presentation suggests as a shopping default — it only pre-fills a preference they can change, so use 'unspecified' whenever it isn't obvious. Do not identify the person, and make no other comments about identity, age, ethnicity, attractiveness, or anything beyond color analysis. If no person is clearly visible, call the tool with ok=false.",
           },
         ],
       },
@@ -315,7 +343,7 @@ User preferences: modesty style ${ctx.modestyStyle}, coverage ${ctx.coveragePref
 Closet (each line is: id | name | category | color | formality | warmth | sleeve):
 ${ctx.closetLines.map((l) => `- ${l}`).join('\n') || '(empty closet)'}
 
-Build up to 4 complete outfits for this occasion. Each outfit should be a wearable combination — a top plus a bottom, or a dress/one-piece — plus outerwear, footwear, or accessories from the closet when they help. Reference closet items ONLY by their exact ids. When the closet is missing a key piece for a great outfit, include it in "missing" with a suggested color (respecting the palette). Consider the occasion's cultural dress conventions (e.g. festive colors for Mehndi/Sangeet/Haldi, avoid plain black/white as the main color at Indian celebrations where inauspicious, subdued colors for funerals) and the likely weather for the location and date. Hard rules regardless of preferences: no sleeveless or strapless tops/dresses, no backless items, no deep necklines, dresses/skirts knee-length or longer, no above-knee shorts. If modesty style is "hijabi": full sleeves, high necklines, ankle-or-full lengths only, and include a hijab/scarf from the closet when one exists. Call record_outfits.`
+Build up to 4 complete outfits for this occasion. Each outfit should be a wearable combination — a top plus a bottom, or a dress/one-piece — plus outerwear, footwear, or accessories from the closet when they help. Reference closet items ONLY by their exact ids. CROSS-MATCH freely: these items came from different photos and were never worn together, and the best outfit often pairs a top from one photo with a bottom from another (e.g. a white kurta photographed with blue jeans may pair better with black trousers from a different photo) — when a cross-matched pairing is the win, say so in the stylingTip. When the closet is missing a key piece for a great outfit, include it in "missing" with a suggested color (respecting the palette). Consider the occasion's cultural dress conventions (e.g. festive colors for Mehndi/Sangeet/Haldi, avoid plain black/white as the main color at Indian celebrations where inauspicious, subdued colors for funerals) and the likely weather for the location and date. Hard rules regardless of preferences: no sleeveless or strapless tops/dresses, no backless items, no deep necklines, dresses/skirts knee-length or longer, no above-knee shorts. If modesty style is "hijabi": full sleeves, high necklines, ankle-or-full lengths only, and include a hijab/scarf from the closet when one exists. Call record_outfits.`
 
   const message = await anthropic.messages.create({
     model: MODEL,

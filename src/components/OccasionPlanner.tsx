@@ -179,11 +179,12 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
         {(closet.length === 0 || result.outfits.some((o) => (o.missing?.length ?? 0) > 0)) && (() => {
           const paletteColor = preferences.colorAnalysis?.bestColors?.[0]?.name ?? ''
           const focus = preferences.wardrobeFocus === 'unisex' ? '' : `${preferences.wardrobeFocus} `
+          const modest = preferences.modestyStyle === 'hijabi' ? 'modest ' : ''
           return (
             <div className="space-y-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
               <h3 className="font-display text-lg font-semibold">Need inspiration? 🛍️</h3>
-              <InspirationRow label="Top ideas" query={`${paletteColor} ${focus}${result.occasionLabel} outfit top`.trim()} />
-              <InspirationRow label="Bottom ideas" query={`${paletteColor} ${focus}${result.occasionLabel} outfit bottom skirt trousers`.trim()} />
+              <InspirationRow label="Top ideas" query={`${paletteColor} ${modest}${focus}${result.occasionLabel} outfit top`.trim()} />
+              <InspirationRow label="Bottom ideas" query={`${paletteColor} ${modest}${focus}${result.occasionLabel} outfit bottom skirt trousers`.trim()} />
             </div>
           )
         })()}

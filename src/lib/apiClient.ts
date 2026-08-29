@@ -198,6 +198,9 @@ export interface TaggedItemResult {
   weatherproof: boolean
   tags: string[]
   coverage?: Record<string, unknown>
+  // From multi-item tagging: where this item sits in the source photo
+  // (fractions 0-1), so the client can crop it into its own image.
+  boundingBox?: { x: number; y: number; w: number; h: number }
 }
 
 export interface SuggestedItemResult {
@@ -217,6 +220,7 @@ export interface ColorAnalysisResult {
   bestColors?: { hex: string; name: string }[]
   avoidColors?: { hex: string; name: string }[]
   summary?: string
+  wardrobeDepartment?: 'women' | 'men' | 'unspecified'
 }
 
 export interface OutfitIdeaResult {

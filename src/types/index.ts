@@ -160,6 +160,7 @@ export interface ColorAnalysis {
   bestColors?: { hex: string; name: string }[]
   avoidColors?: { hex: string; name: string }[]
   summary?: string
+  wardrobeDepartment?: 'women' | 'men' | 'unspecified'
 }
 
 export interface ClothingPreferences {

@@ -55,7 +55,10 @@ export default function SelfieOnboarding({ onDone }: SelfieOnboardingProps) {
             </div>
           )}
           <p className="text-xs text-ink/40">
-            Outfit suggestions will now favor these colors. You can redo this anytime from Preferences.
+            Outfit suggestions will now favor these colors
+            {(result.wardrobeDepartment === 'women' || result.wardrobeDepartment === 'men') &&
+              ` and default to ${result.wardrobeDepartment}'s styles`}
+            . You can change either anytime from Preferences.
           </p>
           <button
             onClick={() => onDone(result)}

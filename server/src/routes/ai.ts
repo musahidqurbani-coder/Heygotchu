@@ -145,6 +145,15 @@ aiRouter.post(
     const record = await prisma.clothingPreferences.findUnique({ where: { userId: req.userId } })
     const prefs = record ? (JSON.parse(record.data) as Record<string, unknown>) : {}
     prefs.colorAnalysis = analysis
+    // Use the detected department as the wardrobe-focus default so clothing
+    // searches match the person — but never overwrite a focus the user has
+    // explicitly picked as women's or men's.
+    if (
+      (analysis.wardrobeDepartment === 'women' || analysis.wardrobeDepartment === 'men') &&
+      (prefs.wardrobeFocus === undefined || prefs.wardrobeFocus === 'unisex')
+    ) {
+      prefs.wardrobeFocus = analysis.wardrobeDepartment
+    }
     const data = JSON.stringify(prefs)
     await prisma.clothingPreferences.upsert({
       where: { userId: req.userId },

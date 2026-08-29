@@ -254,7 +254,17 @@ export default function App() {
               if (selfiePromptKey) localStorage.setItem(selfiePromptKey, '1')
             } catch { /* private mode — the prompt just reappears next visit */ }
             if (analysis) {
-              setPreferences((prev) => ({ ...prev, colorAnalysis: analysis }))
+              setPreferences((prev) => ({
+                ...prev,
+                colorAnalysis: analysis,
+                // Mirror the server: the detected department becomes the
+                // wardrobe-focus default unless one was already chosen.
+                wardrobeFocus:
+                  (analysis.wardrobeDepartment === 'women' || analysis.wardrobeDepartment === 'men') &&
+                  prev.wardrobeFocus === 'unisex'
+                    ? analysis.wardrobeDepartment
+                    : prev.wardrobeFocus,
+              }))
               setToastMessage('Color palette saved — outfit ideas will use it ✨')
             }
           }}

@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import Modal from './Modal'
 import { aiApi, ApiClientError, type TaggedItemResult } from '../lib/apiClient'
-import { resizeImageFile } from '../lib/imageResize'
+import { resizeImageFile, cropDataUrl } from '../lib/imageResize'
 import {
   CLOTHING_CATEGORIES,
   CLOTHING_GENDERS,
@@ -21,7 +21,8 @@ type PhotoStatus = 'queued' | 'reading' | 'done' | 'error'
 
 interface PhotoJob {
   file: File
-  preview: string // resized data URL, also attached to created items
+  preview: string // small resized data URL for the list thumbnail
+  cropSource: string // higher-res copy that per-item crops are cut from
   status: PhotoStatus
   error?: string
   items: DetectedItem[]
@@ -80,7 +81,13 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
     const prepared: PhotoJob[] = []
     for (const file of limited) {
       try {
-        prepared.push({ file, preview: await resizeImageFile(file), status: 'queued', items: [] })
+        prepared.push({
+          file,
+          preview: await resizeImageFile(file),
+          cropSource: await resizeImageFile(file, 1024, 0.8),
+          status: 'queued',
+          items: [],
+        })
       } catch {
         // unreadable image — skip it
       }
@@ -97,7 +104,13 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
         setJobs((prev) => prev.map((j, k) => (k === i ? { ...j, status: 'reading' } : j)))
         try {
           const tagged = await aiApi.tagPhotoMulti(prepared[i].file)
-          const items = tagged.map((t) => toDraft(t, prepared[i].preview))
+          // Each detected garment gets cropped out of the photo into its own
+          // image, so a single outfit shot becomes visually separate items.
+          const items = await Promise.all(
+            tagged.map(async (t) =>
+              toDraft(t, t.boundingBox ? await cropDataUrl(prepared[i].cropSource, t.boundingBox) : prepared[i].preview),
+            ),
+          )
           setJobs((prev) =>
             prev.map((j, k) =>
               k === i
@@ -200,6 +213,9 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
                             onChange={() => toggleItem(jobIdx, itemIdx)}
                             className="h-4 w-4 shrink-0 rounded border-black/20 text-coral focus:ring-coral"
                           />
+                          {it.draft.photo && (
+                            <img src={it.draft.photo} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover ring-1 ring-black/10" />
+                          )}
                           <span
                             className="h-4 w-4 shrink-0 rounded-full ring-1 ring-black/10"
                             style={{ backgroundColor: it.draft.color }}
