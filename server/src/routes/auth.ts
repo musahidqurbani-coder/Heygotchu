@@ -194,3 +194,20 @@ authRouter.get(
     res.json({ user: publicUser(user) })
   }),
 )
+
+// Self-service account deletion — required by the app stores, and the right
+// thing regardless. Cascade wipes closet items (photos included),
+// preferences, saved plans, OTP codes, and AI-run records.
+authRouter.delete(
+  '/me',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const user = await prisma.user.findUnique({ where: { id: req.userId } })
+    if (!user) throw new ApiError(404, 'Account not found.')
+    if (user.role === 'admin') {
+      throw new ApiError(400, 'The family admin account cannot delete itself — contact support instead.')
+    }
+    await prisma.user.delete({ where: { id: user.id } })
+    res.json({ deleted: true })
+  }),
+)

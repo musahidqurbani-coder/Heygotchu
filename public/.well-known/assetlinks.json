@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.heygotchu.app",
+    "sha256_cert_fingerprints": ["96:1F:00:B8:F0:0B:55:87:6A:8F:89:FE:06:17:BD:90:AA:E4:01:46:08:6F:F0:B1:4E:C3:E7:ED:05:7E:52:21"]
+  }
+}]

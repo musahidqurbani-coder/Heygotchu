@@ -82,6 +82,7 @@ export const authApi = {
       '/auth/forgot-password',
       { method: 'POST', body: JSON.stringify({ email }) },
     ),
+  deleteAccount: () => request<{ deleted: boolean }>('/auth/me', { method: 'DELETE' }),
   resetPassword: (userId: string, code: string, newPassword: string) =>
     request<{ token: string; user: PublicUser }>('/auth/reset-password', {
       method: 'POST',

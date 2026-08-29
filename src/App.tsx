@@ -19,6 +19,7 @@ import AuthGate from './components/AuthGate'
 import AdminPanel from './components/AdminPanel'
 import OccasionPlanner from './components/OccasionPlanner'
 import SelfieOnboarding from './components/SelfieOnboarding'
+import DeleteAccountCard from './components/DeleteAccountCard'
 
 type View = 'landing' | 'loading' | 'results' | 'closet' | 'preferences' | 'saved' | 'admin'
 
@@ -395,11 +396,16 @@ export default function App() {
       )}
 
       {view === 'preferences' && (
-        <ClothingPreferencesPanel
-          preferences={preferences}
-          onSave={handleSavePreferences}
-          onBack={() => setView(currentTrip ? 'results' : 'landing')}
-        />
+        <>
+          <ClothingPreferencesPanel
+            preferences={preferences}
+            onSave={handleSavePreferences}
+            onBack={() => setView(currentTrip ? 'results' : 'landing')}
+          />
+          <div className="px-4 pb-16 sm:px-8">
+            <DeleteAccountCard />
+          </div>
+        </>
       )}
 
       {view === 'admin' && user?.role === 'admin' && (
