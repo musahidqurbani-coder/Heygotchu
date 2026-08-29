@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import loginPoster from '../assets/login-poster.jpg'
+import logo from '../assets/logo.jpg'
 
 const INTRO_SEEN_KEY = 'heygotchu.loginIntroSeen.v1'
 
@@ -41,6 +42,20 @@ export default function LoginVideoScreen({
   const [formReady, setFormReady] = useState(reducedMotion || alreadySeen)
   const [showSkip, setShowSkip] = useState(false)
 
+  // Portrait phones/tablets get their own full-screen layout: the video
+  // covers the whole display and a real branded card holds the inputs —
+  // the invisible-overlay trick only works when the 16:9 frame is visible
+  // in full, which letterboxes badly on tall screens.
+  const [isPortrait, setIsPortrait] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-aspect-ratio: 4/5)').matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-aspect-ratio: 4/5)')
+    const onChange = () => setIsPortrait(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
   useEffect(() => {
     if (formReady) return
     const t = setTimeout(() => setShowSkip(true), 1800)
@@ -78,6 +93,101 @@ export default function LoginVideoScreen({
   // overlapping.
   const EMAIL_FILL = '#f4e3e0'
   const PASSWORD_FILL = '#dfe9f3'
+
+  if (isPortrait) {
+    const mobileInput =
+      'w-full rounded-full px-5 py-3.5 text-[15px] font-medium outline-none ring-1 transition focus:ring-2'
+    return (
+      <main className="fixed inset-0 overflow-hidden bg-[#dfe6ef]">
+        {!reducedMotion && !alreadySeen && (
+          <video
+            ref={videoRef}
+            className="absolute inset-0 h-full w-full object-cover"
+            src="/videos/login-intro.mp4"
+            poster={loginPoster}
+            autoPlay
+            muted
+            playsInline
+            onEnded={finishIntro}
+            onError={finishIntro}
+          />
+        )}
+        <img
+          src={loginPoster}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
+          style={{ opacity: formReady ? 1 : 0 }}
+        />
+        {/* Soft wash so the card and links read clearly over the artwork. */}
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-white/25 via-transparent to-black/10 transition-opacity duration-300"
+          style={{ opacity: formReady ? 1 : 0 }}
+        />
+
+        {showSkip && !formReady && (
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="absolute right-4 top-4 z-10 rounded-full bg-black/25 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition hover:bg-black/40"
+          >
+            Skip ›
+          </button>
+        )}
+
+        <form
+          onSubmit={onSubmit}
+          className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-6 transition-opacity duration-500"
+          style={{ opacity: formReady ? 1 : 0, pointerEvents: formReady ? 'auto' : 'none' }}
+        >
+          <div className="mx-auto w-full max-w-sm rounded-[2rem] bg-white/90 p-6 shadow-2xl ring-1 ring-black/5 backdrop-blur-md">
+            <img src={logo} alt="Heygotchu" className="mx-auto h-20 w-20 rounded-2xl object-cover shadow-sm" />
+            <div className="mt-5 space-y-3">
+              <label htmlFor="login-email" className="sr-only">Email address</label>
+              <input
+                id="login-email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="Email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className={`${mobileInput} text-[#e8636a] placeholder:text-[#e8636a]/60 ring-[#e8636a]/30 focus:ring-[#e8636a]`}
+                style={{ backgroundColor: EMAIL_FILL }}
+              />
+              <label htmlFor="login-password" className="sr-only">Password</label>
+              <input
+                id="login-password"
+                type="password"
+                required
+                autoComplete="current-password"
+                placeholder="Password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                className={`${mobileInput} text-[#5c85bf] placeholder:text-[#5c85bf]/60 ring-[#5c85bf]/30 focus:ring-[#5c85bf]`}
+                style={{ backgroundColor: PASSWORD_FILL }}
+              />
+              <button
+                type="submit"
+                disabled={busy}
+                className="w-full rounded-full bg-ink px-5 py-3.5 text-[15px] font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+              >
+                {busy ? 'Logging in…' : 'Log in'}
+              </button>
+            </div>
+            <div className="mt-4 flex items-center justify-between text-[13px] font-medium">
+              <button type="button" onClick={onForgotPassword} className="text-ink/50 hover:text-ink">
+                Forgot Password?
+              </button>
+              <button type="button" onClick={onGoSignup} className="text-coral hover:underline">
+                First Time? Sign up
+              </button>
+            </div>
+          </div>
+        </form>
+      </main>
+    )
+  }
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-gradient-to-b from-[#cfe0f2] via-[#dfe6ef] to-[#f4e3e0]">

@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import type { ClothingItem, ClothingPreferences } from '../types'
 import { meetsHardCoverageRules } from '../lib/outfitGenerator'
+import PhotoLightbox from './PhotoLightbox'
 
 const CATEGORY_ICON: Record<ClothingItem['category'], string> = {
   top: '👕',
@@ -19,6 +21,7 @@ interface ClothingItemCardProps {
 
 export default function ClothingItemCard({ item, preferences, onDelete }: ClothingItemCardProps) {
   const recommended = meetsHardCoverageRules(item, preferences)
+  const [showPhoto, setShowPhoto] = useState(false)
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-md">
@@ -41,13 +44,22 @@ export default function ClothingItemCard({ item, preferences, onDelete }: Clothi
 
       <div className="flex h-28 items-center justify-center bg-cloud">
         {item.photo ? (
-          <img src={item.photo} alt={item.name} className="h-full w-full object-cover" />
+          <button
+            type="button"
+            onClick={() => setShowPhoto(true)}
+            aria-label={`View ${item.name} photo full size`}
+            className="h-full w-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+          >
+            <img src={item.photo} alt={item.name} className="h-full w-full object-cover" />
+          </button>
         ) : (
           <span className="text-4xl" aria-hidden="true">
             {CATEGORY_ICON[item.category]}
           </span>
         )}
       </div>
+
+      {showPhoto && item.photo && <PhotoLightbox src={item.photo} alt={item.name} onClose={() => setShowPhoto(false)} />}
 
       <div className="p-3">
         <div className="flex items-center gap-1.5">

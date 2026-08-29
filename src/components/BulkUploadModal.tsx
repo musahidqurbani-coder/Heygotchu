@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import Modal from './Modal'
+import PhotoLightbox from './PhotoLightbox'
 import { aiApi, ApiClientError, type TaggedItemResult } from '../lib/apiClient'
 import { resizeImageFile, cropDataUrl } from '../lib/imageResize'
 import {
@@ -128,6 +129,7 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
   const [processing, setProcessing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [note, setNote] = useState<string | undefined>(undefined)
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleFiles(e: ChangeEvent<HTMLInputElement>) {
@@ -275,7 +277,14 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
                             className="h-4 w-4 shrink-0 rounded border-black/20 text-coral focus:ring-coral"
                           />
                           {it.draft.photo && (
-                            <img src={it.draft.photo} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover ring-1 ring-black/10" />
+                            <button
+                              type="button"
+                              onClick={() => setLightbox({ src: it.draft.photo!, alt: it.draft.name })}
+                              aria-label={`View ${it.draft.name} crop full size`}
+                              className="shrink-0 cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+                            >
+                              <img src={it.draft.photo} alt="" className="h-10 w-10 rounded-lg object-cover ring-1 ring-black/10" />
+                            </button>
                           )}
                           <span
                             className="h-4 w-4 shrink-0 rounded-full ring-1 ring-black/10"
@@ -316,6 +325,7 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
           </>
         )}
       </div>
+      {lightbox && <PhotoLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
     </Modal>
   )
 }

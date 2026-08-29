@@ -92,7 +92,9 @@ export const authApi = {
 // --- Closet --------------------------------------------------------------
 
 export const closetApi = {
-  list: () => request<{ items: ClothingItem[] }>('/closet').then((r) => r.items),
+  // Closet payloads carry base64 photos and can be megabytes — give the
+  // fetch far more room than the default 10s, especially on mobile data.
+  list: () => request<{ items: ClothingItem[] }>('/closet', {}, 45_000).then((r) => r.items),
   create: (item: Omit<ClothingItem, 'id' | 'createdAt'>) =>
     request<{ item: ClothingItem }>('/closet', { method: 'POST', body: JSON.stringify(item) }).then((r) => r.item),
   remove: (id: string) => request<void>(`/closet/${id}`, { method: 'DELETE' }),

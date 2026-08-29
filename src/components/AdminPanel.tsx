@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import PhotoLightbox from './PhotoLightbox'
 import { adminApi, ApiClientError, type AdminUserSummary, type AdminUserDetail } from '../lib/apiClient'
 
 interface AdminPanelProps {
@@ -15,6 +16,7 @@ export default function AdminPanel({ onBack, onToast }: AdminPanelProps) {
   const [selected, setSelected] = useState<AdminUserDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
 
   function friendlyError(e: unknown): string {
     return e instanceof ApiClientError ? e.message : 'Something went wrong. Please try again.'
@@ -101,7 +103,13 @@ export default function AdminPanel({ onBack, onToast }: AdminPanelProps) {
               {selected.closet.map((item) => (
                 <div key={item.id} className="rounded-2xl bg-cloud p-3 ring-1 ring-black/5">
                   {item.photo ? (
-                    <img src={item.photo} alt={item.name} className="mb-2 h-24 w-full rounded-xl object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setLightbox({ src: item.photo!, alt: item.name })}
+                      className="mb-2 block w-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+                    >
+                      <img src={item.photo} alt={item.name} className="h-24 w-full rounded-xl object-cover" />
+                    </button>
                   ) : (
                     <div className="mb-2 grid h-24 w-full place-items-center rounded-xl bg-black/5 text-xs text-ink/40">no photo</div>
                   )}
@@ -126,6 +134,7 @@ export default function AdminPanel({ onBack, onToast }: AdminPanelProps) {
             </ul>
           )}
         </div>
+        {lightbox && <PhotoLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
       </main>
     )
   }

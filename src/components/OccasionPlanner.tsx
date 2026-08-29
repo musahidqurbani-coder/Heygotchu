@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import PhotoLightbox from './PhotoLightbox'
 import type { ClothingItem, ClothingPreferences } from '../types'
 import {
   aiApi,
@@ -87,6 +88,7 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<OutfitsResponse | null>(null)
   const [saved, setSaved] = useState(false)
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
 
   useEffect(() => {
     eventsApi
@@ -222,7 +224,14 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
                   {items.map((item) => (
                     <div key={item.id} className="w-24">
                       {item.photo ? (
-                        <img src={item.photo} alt={item.name} className="h-24 w-24 rounded-2xl object-cover ring-1 ring-black/5" />
+                        <button
+                          type="button"
+                          onClick={() => setLightbox({ src: item.photo!, alt: item.name })}
+                          aria-label={`View ${item.name} full size`}
+                          className="cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+                        >
+                          <img src={item.photo} alt={item.name} className="h-24 w-24 rounded-2xl object-cover ring-1 ring-black/5" />
+                        </button>
                       ) : (
                         <div
                           className="grid h-24 w-24 place-items-center rounded-2xl text-[10px] font-medium text-white ring-1 ring-black/10"
@@ -276,6 +285,8 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
             </div>
           )
         })()}
+
+        {lightbox && <PhotoLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
       </div>
     )
   }
