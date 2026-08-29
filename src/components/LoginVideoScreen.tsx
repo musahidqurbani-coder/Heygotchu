@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import loginPoster from '../assets/login-poster.jpg'
-import logo from '../assets/logo.jpg'
+import logo from '../assets/logo-mark.png'
 
 const INTRO_SEEN_KEY = 'heygotchu.loginIntroSeen.v1'
 
@@ -147,7 +147,7 @@ export default function LoginVideoScreen({
           style={{ opacity: formReady ? 1 : 0, pointerEvents: formReady ? 'auto' : 'none' }}
         >
           <div className="mx-auto w-full max-w-sm rounded-[2rem] bg-white/90 p-6 shadow-2xl ring-1 ring-black/5 backdrop-blur-md">
-            <img src={logo} alt="Heygotchu" className="mx-auto h-20 w-20 rounded-2xl object-cover shadow-sm" />
+            <img src={logo} alt="Heygotchu" className="mx-auto h-24 w-24 object-contain" />
             <div className="mt-5 space-y-3">
               <label htmlFor="login-email" className="sr-only">Email address</label>
               <input

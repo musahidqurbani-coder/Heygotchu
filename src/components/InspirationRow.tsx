@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react'
-import { imagesApi, type ExampleImage } from '../lib/apiClient'
 import type { ClothingPreferences } from '../types'
 
 // Builds an image-search query from the user's saved preferences — palette
@@ -26,58 +24,22 @@ interface InspirationRowProps {
   fallbackQuery?: string
 }
 
-// Up to 5 example photos for a query, each clicking through to the page the
-// image appears on. Pinterest and Google Images quick-search links always
-// accompany the row (and carry it entirely if no image provider responds).
-export default function InspirationRow({ label, query, fallbackQuery }: InspirationRowProps) {
-  const [images, setImages] = useState<ExampleImage[] | null>(null)
-  const [unavailable, setUnavailable] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    setImages(null)
-    setUnavailable(false)
-    imagesApi
-      .examples(query, fallbackQuery)
-      .then((ex) => { if (!cancelled) setImages(ex) })
-      .catch(() => { if (!cancelled) setUnavailable(true) })
-    return () => { cancelled = true }
-  }, [query, fallbackQuery])
-
+// Clean quick-search links: one tap opens the exact preference-driven query
+// on Pinterest or Google Images. (In-app thumbnails only ever come from the
+// embedded Google widget — no low-quality stock fallbacks here.)
+export default function InspirationRow({ label, query }: InspirationRowProps) {
   const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`
   const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}`
 
   return (
-    <div>
-      <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-ink/40">{label}</p>
-      {!unavailable && images === null ? (
-        <p className="text-xs text-ink/40">Finding examples…</p>
-      ) : !unavailable && images && images.length > 0 ? (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {images.map((img, i) => (
-            <a key={i} href={img.pageUrl ?? img.url} target="_blank" rel="noreferrer" className="shrink-0" title={img.alt}>
-              <img
-                src={img.thumb}
-                alt={img.alt ?? label}
-                onError={(e) => {
-                  // Some sources block hotlinking — hide the broken tile
-                  // rather than showing alt text in a frame.
-                  ;(e.currentTarget.parentElement as HTMLElement).style.display = 'none'
-                }}
-                className="h-28 w-20 rounded-xl object-cover ring-1 ring-black/10 transition hover:ring-coral"
-              />
-            </a>
-          ))}
-        </div>
-      ) : null}
-      <p className="mt-1.5 flex gap-4 text-xs">
-        <a href={pinterestUrl} target="_blank" rel="noreferrer" className="font-semibold text-coral hover:underline">
-          📌 More on Pinterest →
-        </a>
-        <a href={googleUrl} target="_blank" rel="noreferrer" className="font-semibold text-sky hover:underline">
-          More on Google Images →
-        </a>
-      </p>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">{label}</p>
+      <a href={pinterestUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-coral hover:underline">
+        📌 Pinterest →
+      </a>
+      <a href={googleUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-sky hover:underline">
+        Google Images →
+      </a>
     </div>
   )
 }
