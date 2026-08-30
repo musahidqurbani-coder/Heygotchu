@@ -20,6 +20,7 @@ import AdminPanel from './components/AdminPanel'
 import OccasionPlanner from './components/OccasionPlanner'
 import SelfieOnboarding from './components/SelfieOnboarding'
 import DeleteAccountCard from './components/DeleteAccountCard'
+import { hasShareFlag, clearShareFlag } from './lib/sharedIntake'
 
 type View = 'landing' | 'loading' | 'results' | 'closet' | 'preferences' | 'saved' | 'admin'
 
@@ -49,6 +50,9 @@ export default function App() {
   const [dataLoaded, setDataLoaded] = useState(false)
   const [planMode, setPlanMode] = useState<'trip' | 'occasion'>('trip')
   const [selfiePromptDismissed, setSelfiePromptDismissed] = useState(false)
+  // Photos shared into the app from the phone's share sheet land here: jump
+  // straight to the closet and auto-open Bulk upload to receive them.
+  const [pendingShare, setPendingShare] = useState(() => hasShareFlag())
 
   function friendlyError(e: unknown): string {
     return e instanceof ApiClientError ? e.message : 'Something went wrong. Please try again.'
@@ -85,6 +89,10 @@ export default function App() {
       cancelled = true
     }
   }, [status])
+
+  useEffect(() => {
+    if (pendingShare && status === 'signed-in' && dataLoaded) setView('closet')
+  }, [pendingShare, status, dataLoaded])
 
   useEffect(() => {
     if (!toastMessage) return
@@ -373,6 +381,7 @@ export default function App() {
       {view === 'results' && currentTrip && (
         <ResultsView
           trip={currentTrip}
+          closet={closet}
           preferences={preferences}
           saved={isTripSaved(currentTrip)}
           onRegenerate={handleRegenerate}
@@ -386,6 +395,8 @@ export default function App() {
         <ClosetManager
           closet={closet}
           preferences={preferences}
+          autoOpenBulk={pendingShare}
+          onAutoOpened={() => { setPendingShare(false); clearShareFlag() }}
           onAdd={handleAddClothingItem}
           onBulkAdd={handleBulkAddItems}
           onDelete={handleDeleteClothingItem}

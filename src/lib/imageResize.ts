@@ -34,8 +34,8 @@ export function resizeImageFile(file: File, maxSize = 320, quality = 0.75): Prom
 export function cropDataUrl(
   dataUrl: string,
   box: { x: number; y: number; w: number; h: number },
-  maxSize = 320,
-  quality = 0.75,
+  maxSize = 512,
+  quality = 0.82,
 ): Promise<string> {
   return new Promise((resolve) => {
     const clamp = (v: number) => Math.min(1, Math.max(0, v))
@@ -66,6 +66,12 @@ export function cropDataUrl(
           resolve(dataUrl)
           return
         }
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        // Light enhancement so crops look crisp on the avatar and in lists.
+        try {
+          ctx.filter = 'saturate(1.08) contrast(1.05) brightness(1.02)'
+        } catch { /* older browsers: no filter, still fine */ }
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
         resolve(canvas.toDataURL('image/jpeg', quality))
       } catch {

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import type { ClothingPreferences, DayWeather, TripPlan } from '../types'
+import type { ClothingItem, ClothingPreferences, DayWeather, TripPlan } from '../types'
 import InspirationSection from './InspirationSection'
 import { buildInspirationQuery } from './InspirationRow'
+import OutfitDeck from './OutfitDeck'
 import { formatDateRange } from '../lib/dateUtils'
 import { fallbackImage } from '../lib/imageApi'
 import { SAMPLE_DESTINATIONS } from '../data/sampleDestinations'
@@ -15,6 +16,7 @@ import TravelIdeas from './TravelIdeas'
 
 interface ResultsViewProps {
   trip: TripPlan
+  closet: ClothingItem[]
   preferences: ClothingPreferences
   saved: boolean
   onRegenerate: () => void
@@ -28,7 +30,7 @@ function curatedPlaces(destination: string): string[] {
   return curated?.places ?? []
 }
 
-export default function ResultsView({ trip, preferences, saved, onRegenerate, onNewTrip, onSave, onToast }: ResultsViewProps) {
+export default function ResultsView({ trip, closet, preferences, saved, onRegenerate, onNewTrip, onSave, onToast }: ResultsViewProps) {
   const [imgError, setImgError] = useState(false)
   const places = curatedPlaces(trip.destination)
   const weatherDays: DayWeather[] = trip.days
@@ -107,7 +109,12 @@ export default function ResultsView({ trip, preferences, saved, onRegenerate, on
       />
 
       <section className="mt-10">
-        <h2 className="mb-4 font-display text-xl font-semibold">Itinerary</h2>
+        <h2 className="mb-4 font-display text-xl font-semibold">Your fit deck 🃏</h2>
+        <OutfitDeck days={trip.days} closet={closet} preferences={preferences} onToast={onToast} />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-4 font-display text-xl font-semibold">Day by day</h2>
         <Itinerary days={trip.days} />
       </section>
 

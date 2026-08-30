@@ -19,8 +19,38 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const request = event.request
-  if (request.method !== 'GET') return
   const url = new URL(request.url)
+
+  // Web Share Target: photos shared into Heygotchu from the phone's share
+  // sheet (gallery, screenshots, saved Instagram images). The files are
+  // parked in a cache; the app picks them up and opens Bulk upload.
+  if (request.method === 'POST' && url.pathname === '/share-target') {
+    event.respondWith(
+      (async () => {
+        try {
+          const form = await request.formData()
+          const files = form.getAll('photos').filter((f) => f && typeof f === 'object' && 'arrayBuffer' in f)
+          const cache = await caches.open('heygotchu-shared-intake')
+          await Promise.all(
+            files.slice(0, 20).map(async (file, i) => {
+              await cache.put(
+                new Request(`/shared-intake/${i}`),
+                new Response(await file.arrayBuffer(), {
+                  headers: { 'Content-Type': file.type || 'image/jpeg', 'X-Name': file.name || `shared-${i}.jpg` },
+                }),
+              )
+            }),
+          )
+        } catch (e) {
+          // fall through to the app either way
+        }
+        return Response.redirect('/?shared=1', 303)
+      })(),
+    )
+    return
+  }
+
+  if (request.method !== 'GET') return
   // Same-origin static files only — the API and third-party hosts (fonts,
   // image providers) manage their own caching.
   if (url.origin !== location.origin) return

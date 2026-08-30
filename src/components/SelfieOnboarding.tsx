@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import Modal from './Modal'
+import AvatarFigure from './AvatarFigure'
 import { aiApi, ApiClientError, type ColorAnalysisResult } from '../lib/apiClient'
 
 interface SelfieOnboardingProps {
@@ -32,8 +33,16 @@ export default function SelfieOnboarding({ onDone }: SelfieOnboardingProps) {
 
   if (result) {
     return (
-      <Modal title="Your color palette ✨" onClose={() => onDone(result)}>
+      <Modal title="Meet your avatar ✨" onClose={() => onDone(result)}>
         <div className="space-y-4">
+          {result.avatar && (
+            <div className="rounded-2xl bg-cloud/70 py-3">
+              <AvatarFigure look={result.avatar} items={[]} height={230} />
+              <p className="mt-1 text-center text-[11px] text-ink/45">
+                Your outfits will appear on this avatar — a friendly cartoon, never your photo.
+              </p>
+            </div>
+          )}
           {result.seasonalType && (
             <p className="text-sm text-ink/70">
               You're a <strong>{result.seasonalType}</strong>
@@ -72,11 +81,11 @@ export default function SelfieOnboarding({ onDone }: SelfieOnboardingProps) {
   }
 
   return (
-    <Modal title="One quick question 📸" onClose={() => onDone(null)}>
+    <Modal title="Create your avatar 📸" onClose={() => onDone(null)}>
       <div className="space-y-4">
         <p className="text-sm text-ink/70">
-          Want outfit ideas in colors that actually suit you? Add a selfie and Heygotchu will work out your
-          personal color palette.
+          Add a selfie and Heygotchu creates your <strong>AI avatar</strong> — a friendly cartoon that wears your
+          real clothes when outfits are suggested — plus your personal color palette.
         </p>
         <p className="rounded-xl bg-cloud px-3.5 py-2.5 text-xs text-ink/50">
           🔒 Your photo is analyzed and immediately discarded — it's never stored. Only the color palette is saved

@@ -1,8 +1,9 @@
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import Modal from './Modal'
 import PhotoLightbox from './PhotoLightbox'
 import { aiApi, ApiClientError, type TaggedItemResult } from '../lib/apiClient'
 import { resizeImageFile, cropDataUrl } from '../lib/imageResize'
+import { consumeSharedFiles } from '../lib/sharedIntake'
 import {
   CLOTHING_CATEGORIES,
   CLOTHING_GENDERS,
@@ -133,7 +134,19 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleFiles(e: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith('image/'))
+    await processFiles(Array.from(e.target.files ?? []).filter((f) => f.type.startsWith('image/')))
+  }
+
+  // Photos can also arrive via the phone's share sheet (Web Share Target) —
+  // e.g. images saved from Instagram, shared straight into Heygotchu.
+  useEffect(() => {
+    void consumeSharedFiles().then((files) => {
+      if (files.length > 0) void processFiles(files)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function processFiles(files: File[]) {
     if (files.length === 0) return
     const limited = files.slice(0, MAX_PHOTOS)
     setNote(files.length > MAX_PHOTOS ? `Only the first ${MAX_PHOTOS} photos were taken.` : undefined)
@@ -144,7 +157,7 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
         prepared.push({
           file,
           preview: await resizeImageFile(file),
-          cropSource: await resizeImageFile(file, 1024, 0.8),
+          cropSource: await resizeImageFile(file, 1600, 0.85),
           status: 'queued',
           items: [],
         })

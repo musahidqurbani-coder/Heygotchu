@@ -2,9 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { ApiClientError, authApi } from '../lib/apiClient'
 import logo from '../assets/logo-mark.png'
-import LoginVideoScreen from './LoginVideoScreen'
+import Landing from './Landing'
 
-type Screen = 'login' | 'signup' | 'verify' | 'forgot'
+type Screen = 'landing' | 'login' | 'signup' | 'verify' | 'forgot'
 
 interface VerifyState {
   userId: string
@@ -14,7 +14,7 @@ interface VerifyState {
 
 export default function AuthGate() {
   const { signup, sendOtp, verifyOtp, login } = useAuth()
-  const [screen, setScreen] = useState<Screen>('login')
+  const [screen, setScreen] = useState<Screen>('landing')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -147,27 +147,12 @@ export default function AuthGate() {
   const inputClass =
     'w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-coral'
 
-  if (!verify && screen === 'login') {
+  if (!verify && screen === 'landing') {
     return (
-      <div>
-        <LoginVideoScreen
-          loginEmail={loginEmail}
-          setLoginEmail={setLoginEmail}
-          loginPassword={loginPassword}
-          setLoginPassword={setLoginPassword}
-          onSubmit={handleLogin}
-          busy={busy}
-          onGoSignup={() => { setScreen('signup'); setError(null) }}
-          onForgotPassword={() => { setScreen('forgot'); setError(null); setForgot(null); setForgotEmail(loginEmail) }}
-        />
-        {error && (
-          <div role="alert" className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
-            <div className="rounded-xl bg-white/95 px-4 py-2.5 text-center text-sm font-medium text-coral shadow-lg ring-1 ring-black/5 backdrop-blur">
-              {error}
-            </div>
-          </div>
-        )}
-      </div>
+      <Landing
+        onLogin={() => { setScreen('login'); setError(null) }}
+        onSignup={() => { setScreen('signup'); setError(null) }}
+      />
     )
   }
 
@@ -330,6 +315,10 @@ export default function AuthGate() {
             <button type="submit" disabled={busy} className="w-full rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40">
               {busy ? 'Creating account…' : 'Create account'}
             </button>
+            <p className="text-center text-[11px] text-ink/45">
+              By creating an account you agree to our{' '}
+              <a href="/privacy.html" target="_blank" rel="noreferrer" className="font-medium underline hover:text-ink">Privacy Policy</a>.
+            </p>
             <p className="text-center text-xs text-ink/50">
               Already have an account?{' '}
               <button type="button" onClick={() => { setScreen('login'); setError(null) }} className="font-semibold text-ink hover:underline">
@@ -350,15 +339,30 @@ export default function AuthGate() {
             <button type="submit" disabled={busy} className="w-full rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40">
               {busy ? 'Logging in…' : 'Log in'}
             </button>
-            <p className="text-center text-xs text-ink/50">
-              New to Heygotchu?{' '}
+            <div className="flex items-center justify-between text-xs text-ink/50">
+              <button
+                type="button"
+                onClick={() => { setScreen('forgot'); setError(null); setForgot(null); setForgotEmail(loginEmail) }}
+                className="font-medium hover:text-ink"
+              >
+                Forgot password?
+              </button>
               <button type="button" onClick={() => { setScreen('signup'); setError(null) }} className="font-semibold text-ink hover:underline">
                 Create an account
               </button>
-            </p>
+            </div>
           </form>
         )}
       </div>
+
+      {!verify && (
+        <button
+          onClick={() => { setScreen('landing'); setError(null) }}
+          className="mx-auto mt-5 text-xs font-medium text-ink/40 transition hover:text-ink/70"
+        >
+          ← Back to home
+        </button>
+      )}
     </main>
   )
 }

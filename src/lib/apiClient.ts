@@ -235,6 +235,11 @@ export interface ColorAnalysisResult {
   avoidColors?: { hex: string; name: string }[]
   summary?: string
   wardrobeDepartment?: 'women' | 'men' | 'unspecified'
+  avatar?: {
+    skinHex: string
+    hairHex: string
+    hairstyle: 'short' | 'medium' | 'long' | 'ponytail' | 'bun' | 'curly' | 'hijab' | 'bald'
+  }
 }
 
 export interface OutfitIdeaResult {

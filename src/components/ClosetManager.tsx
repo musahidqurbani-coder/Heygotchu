@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ClothingCategory, ClothingItem, ClothingPreferences } from '../types'
 import { CLOTHING_CATEGORIES } from '../types'
 import ClothingItemCard from './ClothingItemCard'
@@ -16,11 +16,21 @@ interface ClosetManagerProps {
   onBulkDelete: (ids: string[]) => Promise<void>
   onLoadStarter: () => void
   onBack: () => void
+  autoOpenBulk?: boolean
+  onAutoOpened?: () => void
 }
 
-export default function ClosetManager({ closet, preferences, onAdd, onBulkAdd, onDelete, onBulkDelete, onLoadStarter, onBack }: ClosetManagerProps) {
+export default function ClosetManager({ closet, preferences, onAdd, onBulkAdd, onDelete, onBulkDelete, onLoadStarter, onBack, autoOpenBulk, onAutoOpened }: ClosetManagerProps) {
   const [showAdd, setShowAdd] = useState(false)
   const [showBulk, setShowBulk] = useState(false)
+
+  useEffect(() => {
+    if (autoOpenBulk) {
+      setShowBulk(true)
+      onAutoOpened?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenBulk])
   const [filter, setFilter] = useState<ClothingCategory | 'all'>('all')
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
