@@ -7,10 +7,27 @@ export interface HowItWorksStep {
   emoji: string
   /** Sets of 3 image URLs to shuffle through for this step's visual block. */
   imageSets: string[][]
+  /**
+   * When true, the 3 images in each set are connected with arrows (used for
+   * "Snap your closet" to show one photo splitting into top/bottom/feet
+   * pieces — a real preview of the AI cropping feature) instead of a plain
+   * grid.
+   */
+  connected?: boolean
 }
 
-// One "How it works" card: text + a 3-photo visual block with a shuffle
-// button that cycles to the next curated set of 3 images.
+function Arrow() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-coral" aria-hidden="true">
+      <path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// One "How it works" card: text + a visual block with a shuffle button that
+// cycles to the next curated set of images — either a plain grid, or (for
+// step 1) three images connected by arrows to show one photo splitting into
+// separate cropped pieces.
 function StepCard({ step }: { step: HowItWorksStep }) {
   const [setIndex, setSetIndex] = useState(0)
   const hasImages = step.imageSets.length > 0
@@ -27,17 +44,33 @@ function StepCard({ step }: { step: HowItWorksStep }) {
 
       {hasImages && (
         <div className="mt-4">
-          <div className="grid grid-cols-3 gap-2">
-            {images.map((src, i) => (
-              <img
-                key={`${setIndex}-${i}`}
-                src={src}
-                alt=""
-                className="aspect-square w-full rounded-xl object-cover ring-1 ring-black/10"
-                loading="lazy"
-              />
-            ))}
-          </div>
+          {step.connected ? (
+            <div className="flex items-center gap-1.5">
+              {images.map((src, i) => (
+                <div key={`${setIndex}-${i}`} className="flex flex-1 items-center gap-1.5">
+                  <img
+                    src={src}
+                    alt=""
+                    className="aspect-square w-full min-w-0 rounded-xl object-cover ring-1 ring-black/10"
+                    loading="lazy"
+                  />
+                  {i < images.length - 1 && <Arrow />}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {images.map((src, i) => (
+                <img
+                  key={`${setIndex}-${i}`}
+                  src={src}
+                  alt=""
+                  className="aspect-square w-full rounded-xl object-cover ring-1 ring-black/10"
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          )}
           {step.imageSets.length > 1 && (
             <button
               onClick={() => setSetIndex((i) => (i + 1) % step.imageSets.length)}

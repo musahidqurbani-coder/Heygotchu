@@ -1,31 +1,71 @@
 import logo from '../assets/logo-mark.png'
 import HowItWorksShuffle, { type HowItWorksStep } from './HowItWorksShuffle'
 
-// Each step gets 3-4 sets of 3 real photos to shuffle through. Drop image
-// URLs (or imported local assets) into these arrays — empty sets just hide
-// the visual block and show text only, so this is safe to ship before
-// photos arrive.
+import s1aTop from '../assets/landing/step1-a-top.jpg'
+import s1aBottom from '../assets/landing/step1-a-bottom.jpg'
+import s1aFeet from '../assets/landing/step1-a-feet.jpg'
+import s1bTop from '../assets/landing/step1-b-top.jpg'
+import s1bBottom from '../assets/landing/step1-b-bottom.jpg'
+import s1bFeet from '../assets/landing/step1-b-feet.jpg'
+import s1cTop from '../assets/landing/step1-c-top.jpg'
+import s1cBottom from '../assets/landing/step1-c-bottom.jpg'
+import s1cFeet from '../assets/landing/step1-c-feet.jpg'
+import s1dTop from '../assets/landing/step1-d-top.jpg'
+import s1dBottom from '../assets/landing/step1-d-bottom.jpg'
+import s1dFeet from '../assets/landing/step1-d-feet.jpg'
+
+import s2_1a from '../assets/landing/step2-1a.jpg'
+import s2_1b from '../assets/landing/step2-1b.jpg'
+import s2_1c from '../assets/landing/step2-1c.jpg'
+import s2_2a from '../assets/landing/step2-2a.jpg'
+import s2_2b from '../assets/landing/step2-2b.jpg'
+import s2_2c from '../assets/landing/step2-2c.jpg'
+import s2_3a from '../assets/landing/step2-3a.jpg'
+import s2_3b from '../assets/landing/step2-3b.jpg'
+import s2_3c from '../assets/landing/step2-3c.jpg'
+
+import s3_1a from '../assets/landing/step3-1a.jpg'
+import s3_1b from '../assets/landing/step3-1b.jpg'
+import s3_1c from '../assets/landing/step3-1c.jpg'
+import s3_2a from '../assets/landing/step3-2a.jpg'
+import s3_2b from '../assets/landing/step3-2b.jpg'
+import s3_2c from '../assets/landing/step3-2c.jpg'
+
+// Each step gets sets of real photos to shuffle through.
 const HOW_IT_WORKS: HowItWorksStep[] = [
   {
     n: '1',
     title: 'Snap your closet',
     body: 'Photograph your clothes — even a full outfit in one shot. AI detects every piece (top, bottom, scarf, jewelry), crops each into its own picture, and reads its color, warmth, sleeve length and style.',
     emoji: '📸',
-    imageSets: [],
+    connected: true,
+    imageSets: [
+      [s1aTop, s1aBottom, s1aFeet],
+      [s1bTop, s1bBottom, s1bFeet],
+      [s1cTop, s1cBottom, s1cFeet],
+      [s1dTop, s1dBottom, s1dFeet],
+    ],
   },
   {
     n: '2',
     title: 'Pick the moment',
     body: 'A trip with live weather, or one of 50+ occasions — Sangeet, Mehndi, Eid, Diwali, weddings, interviews, brunch. Add an optional selfie to unlock your personal color palette.',
     emoji: '🎯',
-    imageSets: [],
+    imageSets: [
+      [s2_1a, s2_1b, s2_1c],
+      [s2_2a, s2_2b, s2_2c],
+      [s2_3a, s2_3b, s2_3c],
+    ],
   },
   {
     n: '3',
     title: 'Get your fits',
     body: 'Complete outfits, cross-matched across everything you own — every piece shown as its own photo. Tap Nah, Remix, or Pack it, and walk away with a packing list that actually fits your bag.',
     emoji: '🃏',
-    imageSets: [],
+    imageSets: [
+      [s3_1a, s3_1b, s3_1c],
+      [s3_2a, s3_2b, s3_2c],
+    ],
   },
 ]
 
