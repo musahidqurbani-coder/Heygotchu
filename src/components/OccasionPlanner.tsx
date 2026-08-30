@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import PhotoLightbox from './PhotoLightbox'
 import InspirationSection from './InspirationSection'
+import AmazonShopBlocks from './AmazonShopBlocks'
 import { buildInspirationQuery } from './InspirationRow'
 import type { ClothingItem, ClothingPreferences } from '../types'
 import {
@@ -146,6 +147,10 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
             )}
           </div>
         )}
+
+        {/* Shoppable palette-matched picks, right after the colors section
+            and before the AI-composed outfits. */}
+        <AmazonShopBlocks preferences={preferences} context={result.occasionLabel} />
 
         {result.generalAdvice && (
           <p className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/70 shadow-sm ring-1 ring-black/5">

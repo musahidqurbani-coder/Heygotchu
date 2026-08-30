@@ -1,53 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import InspirationRow from './InspirationRow'
-
-// The user's Google Programmable Search Engine (created in the Google CSE
-// console, image search enabled, searches the entire web). The embedded
-// Element is free and needs no API key — it renders real Google image
-// results inside the page; clicking a result opens its source.
-const CSE_ID = '567c8d7ce251c40c9'
+import { loadCse, runExclusive } from '../lib/googleCse'
 
 // Amazon Associates tag — safe to expose client-side, affiliate tags always
 // ride along in the URL. A direct tagged search link needs no API approval,
 // unlike the Creators API (pending Amazon eligibility review) — swap in
 // live product-card results here once that clears.
 const AMAZON_PARTNER_TAG = 'mujahidisla04-21'
-
-declare global {
-  interface Window {
-    __gcse?: Record<string, unknown>
-    google?: {
-      search?: {
-        cse?: {
-          element: {
-            render: (config: { div: HTMLElement | string; tag: string; gname: string }, opts?: Record<string, unknown>) => void
-            getElement: (gname: string) => { execute: (query: string) => void } | null
-          }
-        }
-      }
-    }
-  }
-}
-
-let csePromise: Promise<void> | null = null
-function loadCse(): Promise<void> {
-  if (!csePromise) {
-    csePromise = new Promise<void>((resolve, reject) => {
-      window.__gcse = {
-        parsetags: 'explicit',
-        initializationCallback: () => resolve(),
-      }
-      const s = document.createElement('script')
-      s.src = `https://cse.google.com/cse.js?cx=${CSE_ID}`
-      s.async = true
-      s.onerror = () => reject(new Error('Google search widget failed to load'))
-      document.head.appendChild(s)
-      // Belt and braces: some blockers let the script load but never init.
-      setTimeout(() => reject(new Error('Google search widget timed out')), 12000)
-    })
-  }
-  return csePromise
-}
 
 export interface InspirationTab {
   label: string
@@ -72,8 +31,8 @@ export default function InspirationSection({ tabs }: InspirationSectionProps) {
 
   useEffect(() => {
     let cancelled = false
-    loadCse()
-      .then(async () => {
+    runExclusive(() =>
+      loadCse().then(async () => {
         if (cancelled || !containerRef.current || !window.google?.search?.cse) throw new Error('cse unavailable')
         window.google.search.cse.element.render(
           { div: containerRef.current, tag: 'searchresults-only', gname: gnameRef.current },
@@ -87,7 +46,7 @@ export default function InspirationSection({ tabs }: InspirationSectionProps) {
         // The element registers asynchronously — poll briefly for it, then
         // run the first query. If it never appears (blocked, engine broken),
         // hand over to the keyless fallback rows instead of an empty box.
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 25; i++) {
           const el = window.google.search.cse.element.getElement(gnameRef.current)
           if (el) {
             el.execute(tabs[0].query)
@@ -97,10 +56,10 @@ export default function InspirationSection({ tabs }: InspirationSectionProps) {
           await new Promise((r) => setTimeout(r, 200))
         }
         throw new Error('cse element never registered')
-      })
-      .catch(() => {
-        if (!cancelled) setMode('fallback')
-      })
+      }),
+    ).catch(() => {
+      if (!cancelled) setMode('fallback')
+    })
     return () => {
       cancelled = true
     }

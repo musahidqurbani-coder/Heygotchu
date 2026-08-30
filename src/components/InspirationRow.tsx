@@ -6,15 +6,17 @@ import type { ClothingPreferences } from '../types'
 export function buildInspirationQuery(
   preferences: ClothingPreferences,
   context: string, // occasion label or destination
-  garment: 'top' | 'bottom',
+  garment: 'top' | 'bottom' | 'accessory',
 ): { query: string; fallback: string } {
   const color = preferences.colorAnalysis?.bestColors?.[0]?.name ?? ''
   const modest = preferences.modestyStyle === 'hijabi' ? 'modest' : ''
   const style = preferences.stylePreferences[0] ? preferences.stylePreferences[0].split(' ')[0].toLowerCase() : ''
   const gender = preferences.wardrobeFocus === 'unisex' ? '' : preferences.wardrobeFocus
-  const garmentWords = garment === 'top' ? 'outfit top' : 'outfit bottom trousers skirt'
+  const garmentWords =
+    garment === 'top' ? 'outfit top' : garment === 'bottom' ? 'outfit bottom trousers skirt' : 'jewellery accessories'
   const query = [color, modest, style, gender, context, garmentWords].filter(Boolean).join(' ')
-  const fallback = [color, gender, garment === 'top' ? 'kurta' : 'trousers'].filter(Boolean).join(' ')
+  const fallbackWord = garment === 'top' ? 'kurta' : garment === 'bottom' ? 'trousers' : 'jewellery'
+  const fallback = [color, gender, fallbackWord].filter(Boolean).join(' ')
   return { query, fallback }
 }
 
