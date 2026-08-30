@@ -1,4 +1,33 @@
 import logo from '../assets/logo-mark.png'
+import HowItWorksShuffle, { type HowItWorksStep } from './HowItWorksShuffle'
+
+// Each step gets 3-4 sets of 3 real photos to shuffle through. Drop image
+// URLs (or imported local assets) into these arrays — empty sets just hide
+// the visual block and show text only, so this is safe to ship before
+// photos arrive.
+const HOW_IT_WORKS: HowItWorksStep[] = [
+  {
+    n: '1',
+    title: 'Snap your closet',
+    body: 'Photograph your clothes — even a full outfit in one shot. AI detects every piece (top, bottom, scarf, jewelry), crops each into its own picture, and reads its color, warmth, sleeve length and style.',
+    emoji: '📸',
+    imageSets: [],
+  },
+  {
+    n: '2',
+    title: 'Pick the moment',
+    body: 'A trip with live weather, or one of 50+ occasions — Sangeet, Mehndi, Eid, Diwali, weddings, interviews, brunch. Add an optional selfie to unlock your personal color palette.',
+    emoji: '🎯',
+    imageSets: [],
+  },
+  {
+    n: '3',
+    title: 'Get your fits',
+    body: 'Complete outfits, cross-matched across everything you own — every piece shown as its own photo. Tap Nah, Remix, or Pack it, and walk away with a packing list that actually fits your bag.',
+    emoji: '🃏',
+    imageSets: [],
+  },
+]
 
 interface LandingProps {
   onLogin: () => void
@@ -88,37 +117,7 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
         {/* how it works */}
         <section id="how" className="py-14">
           <h2 className="text-center font-display text-3xl font-bold sm:text-4xl">How it works</h2>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            {[
-              {
-                n: '1',
-                title: 'Snap your closet',
-                body: 'Photograph your clothes — even a full outfit in one shot. AI detects every piece (top, bottom, scarf, jewelry), crops each into its own picture, and reads its color, warmth, sleeve length and style.',
-                emoji: '📸',
-              },
-              {
-                n: '2',
-                title: 'Pick the moment',
-                body: 'A trip with live weather, or one of 50+ occasions — Sangeet, Mehndi, Eid, Diwali, weddings, interviews, brunch. Add an optional selfie to unlock your personal color palette.',
-                emoji: '🎯',
-              },
-              {
-                n: '3',
-                title: 'Get your fits',
-                body: 'Complete outfits, cross-matched across everything you own — every piece shown as its own photo. Tap Nah, Remix, or Pack it, and walk away with a packing list that actually fits your bag.',
-                emoji: '🃏',
-              },
-            ].map((step) => (
-              <div key={step.n} className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-                <div className="flex items-center gap-3">
-                  <span className="grid h-10 w-10 place-items-center rounded-full bg-ink font-display text-lg font-bold text-white">{step.n}</span>
-                  <span className="text-2xl" aria-hidden="true">{step.emoji}</span>
-                </div>
-                <h3 className="mt-3 font-display text-xl font-semibold">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink/60">{step.body}</p>
-              </div>
-            ))}
-          </div>
+          <HowItWorksShuffle steps={HOW_IT_WORKS} />
         </section>
 
         {/* why not chatgpt */}
