@@ -235,21 +235,6 @@ const COLOR_ANALYSIS_TOOL: Anthropic.Tool = {
         description:
           "Which clothing department appears to suit this person, judged from overall presentation — used only as a default for clothing searches, and the user can change it anytime. Use 'unspecified' when unsure.",
       },
-      avatar: {
-        type: 'object',
-        description:
-          'Attributes for drawing a friendly illustrated avatar of this person (a stylized cartoon, not a likeness).',
-        properties: {
-          skinHex: { type: 'string', description: 'Representative skin tone as hex.' },
-          hairHex: { type: 'string', description: 'Hair color as hex (or hijab color if worn).' },
-          hairstyle: {
-            type: 'string',
-            enum: ['short', 'medium', 'long', 'ponytail', 'bun', 'curly', 'hijab', 'bald'],
-            description: "Closest simple style; 'hijab' if the person wears one.",
-          },
-        },
-        required: ['skinHex', 'hairHex', 'hairstyle'],
-      },
     },
     required: ['ok'],
   },
@@ -264,11 +249,6 @@ export interface ColorAnalysis {
   avoidColors?: { hex: string; name: string }[]
   summary?: string
   wardrobeDepartment?: 'women' | 'men' | 'unspecified'
-  avatar?: {
-    skinHex: string
-    hairHex: string
-    hairstyle: 'short' | 'medium' | 'long' | 'ponytail' | 'bun' | 'curly' | 'hijab' | 'bald'
-  }
 }
 
 export async function analyzeSelfieColors(base64Image: string, mediaType: string): Promise<ColorAnalysis> {
@@ -288,7 +268,7 @@ export async function analyzeSelfieColors(base64Image: string, mediaType: string
           },
           {
             type: 'text',
-            text: "This is a selfie a person shared to get a personal clothing color palette and a friendly cartoon avatar. Analyze ONLY their general coloring (skin undertone and depth, and hair/eye color where visible) and call record_color_analysis with a flattering palette of clothing colors. Also set wardrobeDepartment to the clothing department ('women' or 'men') their overall presentation suggests as a shopping default — it only pre-fills a preference they can change, so use 'unspecified' whenever it isn't obvious. Fill `avatar` with the simple drawing attributes (skin tone hex, hair color hex, closest hairstyle; use 'hijab' with the hijab's color when one is worn) for a stylized cartoon — never a likeness. Do not identify the person, and make no other comments about identity, age, ethnicity, attractiveness, or anything beyond these attributes. If no person is clearly visible, call the tool with ok=false.",
+            text: "This is a selfie a person shared to get a personal clothing color palette. Analyze ONLY their general coloring (skin undertone and depth, and hair/eye color where visible) and call record_color_analysis with a flattering palette of clothing colors. Also set wardrobeDepartment to the clothing department ('women' or 'men') their overall presentation suggests as a shopping default — it only pre-fills a preference they can change, so use 'unspecified' whenever it isn't obvious. Do not identify the person, and make no other comments about identity, age, ethnicity, attractiveness, or anything beyond color analysis. If no person is clearly visible, call the tool with ok=false.",
           },
         ],
       },

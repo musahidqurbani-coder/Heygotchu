@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import PhotoLightbox from './PhotoLightbox'
-import AvatarFigure from './AvatarFigure'
 import InspirationSection from './InspirationSection'
 import { buildInspirationQuery } from './InspirationRow'
 import type { ClothingItem, ClothingPreferences } from '../types'
@@ -40,7 +39,6 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
   const [result, setResult] = useState<OutfitsResponse | null>(null)
   const [saved, setSaved] = useState(false)
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
-  const [avatarFor, setAvatarFor] = useState<number | null>(null)
 
   useEffect(() => {
     eventsApi
@@ -211,23 +209,6 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
                 </div>
               )}
               <p className="mt-3 rounded-xl bg-cloud px-3.5 py-2.5 text-sm text-ink/60">✨ {outfit.stylingTip}</p>
-              {items.length > 0 && (
-                <button
-                  onClick={() => setAvatarFor(avatarFor === idx ? null : idx)}
-                  className="mt-3 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                >
-                  {avatarFor === idx ? 'Hide avatar' : '👤 Try on avatar'}
-                </button>
-              )}
-              {avatarFor === idx && items.length > 0 && (
-                <div className="mt-3 rounded-2xl bg-cloud/60 py-3">
-                  <AvatarFigure
-                    look={preferences.colorAnalysis?.avatar}
-                    items={items.map((i) => ({ id: i.id, name: i.name, category: i.category, color: i.color, photo: i.photo }))}
-                    height={380}
-                  />
-                </div>
-              )}
             </div>
           )
         })}

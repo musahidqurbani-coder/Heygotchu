@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import type { ClothingItem, ClothingPreferences, DayOutfit } from '../types'
 import { meetsHardCoverageRules } from '../lib/outfitGenerator'
 import { formatDateLabel } from '../lib/dateUtils'
-import AvatarFigure from './AvatarFigure'
 import PhotoLightbox from './PhotoLightbox'
 
 interface OutfitDeckProps {
@@ -23,8 +22,6 @@ export default function OutfitDeck({ days, closet, preferences, onToast }: Outfi
   const [overrides, setOverrides] = useState<Record<number, ClothingItem[]>>({})
   const [dayState, setDayState] = useState<Record<number, DayState>>({})
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
-
-  const avatarLook = preferences.colorAnalysis?.avatar
 
   const dayItems = useMemo(() => overrides[active] ?? days[active]?.items ?? [], [overrides, active, days])
 
@@ -119,32 +116,19 @@ export default function OutfitDeck({ days, closet, preferences, onToast }: Outfi
             title={item.name}
           >
             {item.photo ? (
-              <img src={item.photo} alt={item.name} className="h-20 w-20 rounded-2xl object-cover ring-1 ring-black/10" />
+              <img src={item.photo} alt={item.name} className="h-36 w-36 rounded-2xl object-cover ring-1 ring-black/10 sm:h-44 sm:w-44" />
             ) : (
               <span
-                className="flex h-20 w-20 items-end justify-center rounded-2xl pb-1 text-[10px] font-semibold text-white ring-1 ring-black/10"
+                className="flex h-36 w-36 items-end justify-center rounded-2xl pb-2 text-xs font-semibold text-white ring-1 ring-black/10 sm:h-44 sm:w-44"
                 style={{ backgroundColor: item.color }}
               >
                 {item.category}
               </span>
             )}
+            <span className="mt-1 block w-36 truncate text-center text-xs font-medium text-ink/60 sm:w-44">{item.name}</span>
           </button>
         ))}
         {dayItems.length === 0 && <p className="py-6 text-sm text-ink/45">No items for this day — add more clothes to your closet.</p>}
-      </div>
-
-      {/* the avatar wearing it */}
-      <div className="mt-2 rounded-2xl bg-cloud/60 py-3">
-        <AvatarFigure
-          look={avatarLook}
-          items={dayItems.map((i) => ({ id: i.id, name: i.name, category: i.category, color: i.color, photo: i.photo }))}
-          height={400}
-        />
-        {!avatarLook && (
-          <p className="mt-1 text-center text-[11px] text-ink/40">
-            Add a selfie in Preferences to make the avatar look like you ✨
-          </p>
-        )}
       </div>
 
       {/* actions */}

@@ -39,7 +39,7 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base text-ink/65 sm:text-lg">
             Tell Heygotchu where you're going — or what the occasion is — and show it what you own.
-            It builds the exact outfits, shows them on your avatar, and writes the packing list.
+            It builds the exact outfits and writes the packing list.
             From <strong>your</strong> closet. Nothing to buy.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -99,13 +99,13 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
               {
                 n: '2',
                 title: 'Pick the moment',
-                body: 'A trip with live weather, or one of 50+ occasions — Sangeet, Mehndi, Eid, Diwali, weddings, interviews, brunch. Add an optional selfie to unlock your personal color palette and avatar.',
+                body: 'A trip with live weather, or one of 50+ occasions — Sangeet, Mehndi, Eid, Diwali, weddings, interviews, brunch. Add an optional selfie to unlock your personal color palette.',
                 emoji: '🎯',
               },
               {
                 n: '3',
                 title: 'Get your fits',
-                body: 'Complete outfits, cross-matched across everything you own, shown on your avatar. Swipe Nah, Remix, or Pack it — and walk away with a packing list that actually fits your bag.',
+                body: 'Complete outfits, cross-matched across everything you own — every piece shown as its own photo. Tap Nah, Remix, or Pack it, and walk away with a packing list that actually fits your bag.',
                 emoji: '🃏',
               },
             ].map((step) => (

@@ -161,14 +161,6 @@ export interface ColorAnalysis {
   avoidColors?: { hex: string; name: string }[]
   summary?: string
   wardrobeDepartment?: 'women' | 'men' | 'unspecified'
-  avatar?: AvatarLook
-}
-
-// Attributes for the stylized illustrated avatar (never a likeness).
-export interface AvatarLook {
-  skinHex: string
-  hairHex: string
-  hairstyle: 'short' | 'medium' | 'long' | 'ponytail' | 'bun' | 'curly' | 'hijab' | 'bald'
 }
 
 export interface ClothingPreferences {
