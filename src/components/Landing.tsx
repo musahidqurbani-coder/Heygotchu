@@ -1,73 +1,38 @@
 import logo from '../assets/logo-mark.png'
-import HowItWorksShuffle, { type HowItWorksStep } from './HowItWorksShuffle'
+import ClosetGridPreview from './ClosetGridPreview'
+import OutfitMixShuffle from './OutfitMixShuffle'
+import PackedBagPreview from './PackedBagPreview'
 
-import s1aTop from '../assets/landing/step1-a-top.jpg'
-import s1aBottom from '../assets/landing/step1-a-bottom.jpg'
-import s1aFeet from '../assets/landing/step1-a-feet.jpg'
-import s1bTop from '../assets/landing/step1-b-top.jpg'
-import s1bBottom from '../assets/landing/step1-b-bottom.jpg'
-import s1bFeet from '../assets/landing/step1-b-feet.jpg'
-import s1cTop from '../assets/landing/step1-c-top.jpg'
-import s1cBottom from '../assets/landing/step1-c-bottom.jpg'
-import s1cFeet from '../assets/landing/step1-c-feet.jpg'
-import s1dTop from '../assets/landing/step1-d-top.jpg'
-import s1dBottom from '../assets/landing/step1-d-bottom.jpg'
-import s1dFeet from '../assets/landing/step1-d-feet.jpg'
+import mixTop1 from '../assets/landing/mix-top-1.jpg'
+import mixTop2 from '../assets/landing/mix-top-2.jpg'
+import mixTop3 from '../assets/landing/mix-top-3.jpg'
+import mixTop4 from '../assets/landing/mix-top-4.jpg'
+import mixBottom1 from '../assets/landing/mix-bottom-1.jpg'
+import mixBottom2 from '../assets/landing/mix-bottom-2.jpg'
+import mixBottom3 from '../assets/landing/mix-bottom-3.jpg'
+import mixBottom4 from '../assets/landing/mix-bottom-4.jpg'
+import mixShoe1 from '../assets/landing/mix-shoe-1.jpg'
+import mixShoe2 from '../assets/landing/mix-shoe-2.jpg'
+import mixShoe3 from '../assets/landing/mix-shoe-3.jpg'
+import mixShoe4 from '../assets/landing/mix-shoe-4.jpg'
+import closetAccessory1 from '../assets/landing/closet-accessory-1.jpg'
 
-import s2_1a from '../assets/landing/step2-1a.jpg'
-import s2_1b from '../assets/landing/step2-1b.jpg'
-import s2_1c from '../assets/landing/step2-1c.jpg'
-import s2_2a from '../assets/landing/step2-2a.jpg'
-import s2_2b from '../assets/landing/step2-2b.jpg'
-import s2_2c from '../assets/landing/step2-2c.jpg'
-import s2_3a from '../assets/landing/step2-3a.jpg'
-import s2_3b from '../assets/landing/step2-3b.jpg'
-import s2_3c from '../assets/landing/step2-3c.jpg'
+const MIX_TOPS = [mixTop1, mixTop2, mixTop3, mixTop4]
+const MIX_BOTTOMS = [mixBottom1, mixBottom2, mixBottom3, mixBottom4]
+const MIX_SHOES = [mixShoe1, mixShoe2, mixShoe3, mixShoe4]
 
-import s3_1a from '../assets/landing/step3-1a.jpg'
-import s3_1b from '../assets/landing/step3-1b.jpg'
-import s3_1c from '../assets/landing/step3-1c.jpg'
-import s3_2a from '../assets/landing/step3-2a.jpg'
-import s3_2b from '../assets/landing/step3-2b.jpg'
-import s3_2c from '../assets/landing/step3-2c.jpg'
-
-// Each step gets sets of real photos to shuffle through.
-const HOW_IT_WORKS: HowItWorksStep[] = [
-  {
-    n: '1',
-    title: 'Snap your closet',
-    body: 'Photograph your clothes — even a full outfit in one shot. AI detects every piece (top, bottom, scarf, jewelry), crops each into its own picture, and reads its color, warmth, sleeve length and style.',
-    emoji: '📸',
-    connected: true,
-    imageSets: [
-      [s1aTop, s1aBottom, s1aFeet],
-      [s1bTop, s1bBottom, s1bFeet],
-      [s1cTop, s1cBottom, s1cFeet],
-      [s1dTop, s1dBottom, s1dFeet],
-    ],
-  },
-  {
-    n: '2',
-    title: 'Pick the moment',
-    body: 'A trip with live weather, or one of 50+ occasions — Sangeet, Mehndi, Eid, Diwali, weddings, interviews, brunch. Add an optional selfie to unlock your personal color palette.',
-    emoji: '🎯',
-    imageSets: [
-      [s2_1a, s2_1b, s2_1c],
-      [s2_2a, s2_2b, s2_2c],
-      [s2_3a, s2_3b, s2_3c],
-    ],
-  },
-  {
-    n: '3',
-    title: 'Get your fits',
-    body: 'Complete outfits, cross-matched across everything you own — every piece shown as its own photo. Tap Nah, Remix, or Pack it, and walk away with a packing list that actually fits your bag.',
-    emoji: '🃏',
-    imageSets: [
-      [s3_1a, s3_1b, s3_1c],
-      [s3_2a, s3_2b, s3_2c],
-    ],
-  },
+const CLOSET_PREVIEW_ITEMS = [
+  { photo: mixTop1, name: 'White lace kimono', meta: 'Top · Light' },
+  { photo: mixBottom1, name: 'Green palm skirt', meta: 'Bottom · Light' },
+  { photo: mixShoe2, name: 'Embroidered sandals', meta: 'Footwear · Light' },
+  { photo: mixTop3, name: 'Tied white blouse', meta: 'Top · Medium' },
+  { photo: mixBottom2, name: 'Tropical wide pants', meta: 'Bottom · Medium' },
+  { photo: closetAccessory1, name: 'Straw sun hat', meta: 'Accessory · Light' },
+  { photo: mixTop2, name: 'White halter top', meta: 'Top · Light' },
+  { photo: mixBottom4, name: 'Black pleated skirt', meta: 'Bottom · Medium' },
 ]
+
+const PACKED_BAG_PHOTOS = [mixTop3, mixBottom3, mixShoe1, mixTop2]
 
 interface LandingProps {
   onLogin: () => void
@@ -157,7 +122,53 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
         {/* how it works */}
         <section id="how" className="py-14">
           <h2 className="text-center font-display text-3xl font-bold sm:text-4xl">How it works</h2>
-          <HowItWorksShuffle steps={HOW_IT_WORKS} />
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-ink font-display text-lg font-bold text-white">1</span>
+                <span className="text-2xl" aria-hidden="true">📸</span>
+              </div>
+              <h3 className="mt-3 font-display text-xl font-semibold">Snap your closet</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink/60">
+                Photograph your clothes — even a full outfit in one shot. AI detects every piece, crops each into
+                its own picture, and reads its color, warmth and style. Here's what your closet looks like once
+                it's in the app:
+              </p>
+              <div className="mt-4">
+                <ClosetGridPreview items={CLOSET_PREVIEW_ITEMS} />
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-ink font-display text-lg font-bold text-white">2</span>
+                <span className="text-2xl" aria-hidden="true">🎯</span>
+              </div>
+              <h3 className="mt-3 font-display text-xl font-semibold">Pick the moment</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink/60">
+                A trip with live weather, or one of 50+ occasions — Sangeet, Mehndi, Eid, Diwali, weddings,
+                interviews, brunch. Mix and match from your own top, bottom, and shoe options:
+              </p>
+              <div className="mt-4">
+                <OutfitMixShuffle tops={MIX_TOPS} bottoms={MIX_BOTTOMS} shoes={MIX_SHOES} />
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-ink font-display text-lg font-bold text-white">3</span>
+                <span className="text-2xl" aria-hidden="true">🃏</span>
+              </div>
+              <h3 className="mt-3 font-display text-xl font-semibold">Get your fits</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink/60">
+                Complete outfits, cross-matched across everything you own. Tap Nah, Remix, or Pack it — here's
+                the fit deck once a bag is packed:
+              </p>
+              <div className="mt-4">
+                <PackedBagPreview photos={PACKED_BAG_PHOTOS} />
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* why not chatgpt */}
