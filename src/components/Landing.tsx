@@ -51,7 +51,7 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
       <header className="sticky top-0 z-40 border-b border-black/5 bg-cloud/85 backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
           <div className="flex items-center gap-2">
-            <img src={logo} alt="" className="h-10 w-10 object-contain" />
+            <img src={logo} alt="" className="h-10 w-10 rounded-lg object-contain shadow-sm" />
             <span className="font-display text-xl font-semibold tracking-tight">Heygotchu</span>
           </div>
           <div className="flex items-center gap-2">
