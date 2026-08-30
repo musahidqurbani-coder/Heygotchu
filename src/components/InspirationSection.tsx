@@ -7,6 +7,12 @@ import InspirationRow from './InspirationRow'
 // results inside the page; clicking a result opens its source.
 const CSE_ID = '567c8d7ce251c40c9'
 
+// Amazon Associates tag — safe to expose client-side, affiliate tags always
+// ride along in the URL. A direct tagged search link needs no API approval,
+// unlike the Creators API (pending Amazon eligibility review) — swap in
+// live product-card results here once that clears.
+const AMAZON_PARTNER_TAG = 'mujahidisla04-21'
+
 declare global {
   interface Window {
     __gcse?: Record<string, unknown>
@@ -117,6 +123,7 @@ export default function InspirationSection({ tabs }: InspirationSectionProps) {
   }
 
   const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(tabs[active].query)}`
+  const amazonUrl = `https://www.amazon.in/s?k=${encodeURIComponent(tabs[active].query)}&i=fashion&tag=${AMAZON_PARTNER_TAG}`
 
   return (
     <div>
@@ -133,12 +140,20 @@ export default function InspirationSection({ tabs }: InspirationSectionProps) {
           </button>
         ))}
         <a
+          href={amazonUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="ml-auto text-xs font-semibold text-tangerine hover:underline"
+        >
+          🛍️ Shop on Amazon →
+        </a>
+        <a
           href={pinterestUrl}
           target="_blank"
           rel="noreferrer"
-          className="ml-auto text-xs font-semibold text-coral hover:underline"
+          className="text-xs font-semibold text-coral hover:underline"
         >
-          📌 On Pinterest →
+          📌 Pinterest →
         </a>
       </div>
       {mode === 'loading' && <p className="text-xs text-ink/40">Loading Google results…</p>}

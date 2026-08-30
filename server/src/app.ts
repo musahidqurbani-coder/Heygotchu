@@ -8,6 +8,7 @@ import { eventsRouter } from './routes/events'
 import { aiRouter } from './routes/ai'
 import { adminRouter } from './routes/admin'
 import { imagesRouter } from './routes/images'
+import { shopRouter } from './routes/shop'
 import { vibeRouter } from './routes/vibe'
 import { errorHandler } from './middleware/errorHandler'
 
@@ -34,6 +35,7 @@ app.use('/events', eventsRouter)
 app.use('/ai', aiRouter)
 app.use('/admin', adminRouter)
 app.use('/images', imagesRouter)
+app.use('/shop', shopRouter)
 app.use('/vibe', vibeRouter)
 
 app.use((req, res) => {
