@@ -1,24 +1,49 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LANGUAGES, useLang } from '../lib/i18n'
 import { VIBES, applyVibe, currentVibe } from '../lib/vibes'
 import { useAuth } from '../context/AuthContext'
 import { cropAvatarToSquare } from '../lib/avatarCrop'
-import { ApiClientError } from '../lib/apiClient'
+import { ApiClientError, engagementApi, type StreakInfo } from '../lib/apiClient'
+import type { ClothingPreferences } from '../types'
 
 interface AppSettingsProps {
   onBack?: () => void
   onToast?: (message: string) => void
+  preferences?: ClothingPreferences
+}
+
+const TIER_STYLE: Record<StreakInfo['tier'], { label: string; icon: string }> = {
+  silver: { label: 'Silver', icon: '🥈' },
+  gold: { label: 'Gold', icon: '🥇' },
+  platinum: { label: 'Platinum', icon: '💠' },
+  diamond: { label: 'Diamond', icon: '💎' },
 }
 
 // App-level settings: profile (name/phone/photo), language, "My Vibe" (the
 // selectable UI look), and the refer-&-earn link. Lives on the Preferences
 // screen above the clothing preferences — which is why the back button
 // lives up here, at the top of the page.
-export default function AppSettings({ onBack, onToast }: AppSettingsProps) {
+export default function AppSettings({ onBack, onToast, preferences }: AppSettingsProps) {
   const { lang, setLang } = useLang()
   const { user, updateProfile } = useAuth()
   const [vibe, setVibe] = useState(currentVibe)
   const [copied, setCopied] = useState(false)
+  const [streakInfo, setStreakInfo] = useState<StreakInfo | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    engagementApi
+      .streak()
+      .then((s) => {
+        if (!cancelled) setStreakInfo(s)
+      })
+      .catch(() => {
+        // offline or logged-out edge — the card simply doesn't show
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const [name, setName] = useState(user?.name ?? '')
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? '')
@@ -87,6 +112,77 @@ export default function AppSettings({ onBack, onToast }: AppSettingsProps) {
           ← Back
         </button>
       )}
+      {/* Daily Grind streak */}
+      {streakInfo && (() => {
+        const tier = TIER_STYLE[streakInfo.tier]
+        const radius = 26
+        const circumference = 2 * Math.PI * radius
+        const goal = streakInfo.nextTier ? streakInfo.nextTier.atDays : streakInfo.streak || 1
+        const fraction = Math.min(1, streakInfo.streak / goal)
+        return (
+          <div className="rounded-3xl bg-ink p-5 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="relative h-16 w-16 shrink-0">
+                <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90">
+                  <circle cx="32" cy="32" r={radius} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="6" />
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r={radius}
+                    fill="none"
+                    stroke="#f5c451"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={`${circumference * fraction} ${circumference}`}
+                  />
+                </svg>
+                <span className="absolute inset-0 grid place-items-center text-lg font-bold text-[#fff]">
+                  {streakInfo.streak}
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-[#fff]">Daily Grind</p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#fff]/70">
+                  <span>
+                    {tier.icon} {tier.label}
+                  </span>
+                  {streakInfo.nextTier && (
+                    <span>
+                      {streakInfo.nextTier.daysToGo} to {streakInfo.nextTier.name}
+                    </span>
+                  )}
+                  <span>{streakInfo.bestStreak} best</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* My palette */}
+      {preferences?.colorAnalysis?.ok && (
+        <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="font-display text-lg font-semibold">My palette 🖌️</h3>
+              {preferences.colorAnalysis.seasonalType && (
+                <p className="mt-0.5 text-sm text-ink/60">{preferences.colorAnalysis.seasonalType}</p>
+              )}
+            </div>
+            <div className="flex shrink-0 -space-x-1.5">
+              {(preferences.colorAnalysis.bestColors ?? []).slice(0, 4).map((c, i) => (
+                <span
+                  key={c.hex + i}
+                  className="h-7 w-7 rounded-full ring-2 ring-white"
+                  style={{ backgroundColor: c.hex }}
+                  title={c.name}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Profile */}
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
         <h3 className="font-display text-lg font-semibold">Profile 👤</h3>
