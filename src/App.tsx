@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ClothingItem, ClothingPreferences, TripPlan } from './types'
 import { DEFAULT_CLOTHING_PREFERENCES } from './types'
 import type { TripFormValues } from './components/TripForm'
@@ -18,11 +18,19 @@ import Toast from './components/Toast'
 import AuthGate from './components/AuthGate'
 import AdminPanel from './components/AdminPanel'
 import OccasionPlanner from './components/OccasionPlanner'
+import TodayMode from './components/TodayMode'
+import StreakChip from './components/StreakChip'
+import SaveTheDate from './components/SaveTheDate'
+import AppSettings from './components/AppSettings'
+import BottomNav from './components/BottomNav'
+import { isolateGarment } from './lib/backgroundRemoval'
+import { looksLikeSameItem } from './lib/dupDetect'
+import { useLang } from './lib/i18n'
 import SelfieOnboarding from './components/SelfieOnboarding'
 import DeleteAccountCard from './components/DeleteAccountCard'
 import { hasShareFlag, clearShareFlag } from './lib/sharedIntake'
 
-type View = 'landing' | 'loading' | 'results' | 'closet' | 'preferences' | 'saved' | 'admin'
+type View = 'landing' | 'loading' | 'results' | 'closet' | 'preferences' | 'saved' | 'admin' | 'dates'
 
 const EMPTY_FORM: TripFormValues = {
   destination: '',
@@ -48,7 +56,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [dataLoaded, setDataLoaded] = useState(false)
-  const [planMode, setPlanMode] = useState<'trip' | 'occasion'>('trip')
+  const [planMode, setPlanMode] = useState<'trip' | 'occasion' | 'today'>('trip')
+  const { t } = useLang()
   const [selfiePromptDismissed, setSelfiePromptDismissed] = useState(false)
   // Photos shared into the app from the phone's share sheet land here: jump
   // straight to the closet and auto-open Bulk upload to receive them.
@@ -57,6 +66,68 @@ export default function App() {
   function friendlyError(e: unknown): string {
     return e instanceof ApiClientError ? e.message : 'Something went wrong. Please try again.'
   }
+
+  // --- Background photo clean-up queue --------------------------------------
+  // Uploads save instantly with the plain photo; this queue then removes
+  // backgrounds one by one afterwards (cleaned photos are PNG, raw ones
+  // JPEG). A small progress pill shows while it works, and each finished
+  // photo pops into place as its PATCH lands — nothing ever waits on it.
+  const bgQueueRunning = useRef(false)
+
+  // The catch-up queue is a silent safety net: photos now arrive already
+  // cleaned from the upload flow itself, so this only ever mops up items
+  // saved before that (or a rare in-flight failure) — invisibly.
+  // Photos that crashed the cleaner once are remembered here and skipped on
+  // future logins — without this, one stubborn photo re-ran (and slowed the
+  // app) on every session. The manual "Remove backgrounds" button in the
+  // closet still retries them deliberately.
+  const BG_SKIP_KEY = 'heygotchu.bgSkip.v1'
+  const readBgSkips = (): Set<string> => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(BG_SKIP_KEY) ?? '[]') as string[])
+    } catch {
+      return new Set()
+    }
+  }
+  const addBgSkip = (id: string) => {
+    try {
+      localStorage.setItem(BG_SKIP_KEY, JSON.stringify([...readBgSkips().add(id)].slice(-200)))
+    } catch { /* private mode */ }
+  }
+
+  const runBgQueue = useCallback((items: ClothingItem[], settleMs = 0) => {
+    const skips = readBgSkips()
+    // The database flag is the single source of truth: an item is processed
+    // exactly once in its life, then every future fetch serves the finished
+    // image. (Legacy PNG photos predate the flag and are treated as done.)
+    const pending = items.filter(
+      (i) => i.photo && !i.photoCleaned && !i.photo.startsWith('data:image/png') && !skips.has(i.id),
+    )
+    if (pending.length === 0 || bgQueueRunning.current) return
+    bgQueueRunning.current = true
+    void (async () => {
+      // Let the app finish rendering and the user start interacting before
+      // any heavy work begins — the model also runs in a web worker now, so
+      // this stays off the main thread either way.
+      if (settleMs > 0) await new Promise((r) => setTimeout(r, settleMs))
+      for (const item of pending) {
+        try {
+          const cleaned = await isolateGarment(item.photo!)
+          // Persist result AND the done-flag together — even when the image
+          // came back unchanged, so the item is never picked up again.
+          const updated = await closetApi.update(item.id, { photo: cleaned, photoCleaned: true })
+          setCloset((prev) => prev.map((i) => (i.id === item.id ? updated : i)))
+        } catch {
+          addBgSkip(item.id) // don't retry this one automatically next login
+        }
+        // A short breather between photos keeps network + state updates
+        // from bunching up against whatever the user is doing.
+        await new Promise((r) => setTimeout(r, 400))
+      }
+      bgQueueRunning.current = false
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Load this account's closet, preferences, and saved trips from the
   // backend as soon as they're signed in — every request is scoped to their
@@ -72,6 +143,10 @@ export default function App() {
         const [items, prefs, plans] = await Promise.all([closetApi.list(), preferencesApi.get(), eventsApi.list()])
         if (cancelled) return
         setCloset(items)
+        // Catch any photos still carrying their original background (e.g.
+        // saved before the clean-up finished last session) — but only after
+        // the app has settled, so login never feels heavy.
+        runBgQueue(items, 8000)
         setPreferences(prefs ? { ...DEFAULT_CLOTHING_PREFERENCES, ...prefs } : DEFAULT_CLOTHING_PREFERENCES)
         const destinationPlans = plans.filter((p): p is EventPlanRecord => p.mode === 'destination')
         setTrips(destinationPlans.map((p) => p.data as unknown as TripPlan))
@@ -101,13 +176,27 @@ export default function App() {
   }, [toastMessage])
 
   async function handleAddClothingItem(item: Omit<ClothingItem, 'id' | 'createdAt'>) {
+    // The same physical garment should live in the closet once — an add
+    // matching an existing item is skipped with an honest toast rather than
+    // silently creating a twin.
+    const twin = closet.find((existing) => looksLikeSameItem(existing, item))
+    if (twin) {
+      setToastMessage(`Looks like "${twin.name}" is already in your closet — not added again.`)
+      return
+    }
     try {
       const created = await closetApi.create(item)
       setCloset((prev) => [...prev, created])
       setToastMessage('Added to your closet')
+      runBgQueue([created])
     } catch (e) {
       setToastMessage(friendlyError(e))
     }
+  }
+
+  async function handleUpdateItemPhoto(id: string, photo: string) {
+    const updated = await closetApi.update(id, { photo, photoCleaned: true })
+    setCloset((prev) => prev.map((i) => (i.id === id ? updated : i)))
   }
 
   async function handleDeleteClothingItem(id: string) {
@@ -124,18 +213,29 @@ export default function App() {
   async function handleBulkAddItems(items: Omit<ClothingItem, 'id' | 'createdAt'>[]) {
     const created: ClothingItem[] = []
     let failed = 0
+    let skippedDupes = 0
     for (const item of items) {
+      // Guard against cross-upload twins: compare against the existing
+      // closet AND everything accepted earlier in this same batch.
+      if ([...closet, ...created].some((existing) => looksLikeSameItem(existing, item))) {
+        skippedDupes += 1
+        continue
+      }
       try {
         created.push(await closetApi.create(item))
       } catch {
         failed += 1
       }
     }
-    if (created.length > 0) setCloset((prev) => [...prev, ...created])
+    if (created.length > 0) {
+      setCloset((prev) => [...prev, ...created])
+      runBgQueue(created)
+    }
+    const dupNote = skippedDupes > 0 ? ` (${skippedDupes} duplicate${skippedDupes === 1 ? '' : 's'} skipped)` : ''
     setToastMessage(
       failed === 0
-        ? `Added ${created.length} item${created.length === 1 ? '' : 's'} to your closet`
-        : `Added ${created.length}, but ${failed} failed — try those again`,
+        ? `Added ${created.length} item${created.length === 1 ? '' : 's'} to your closet${dupNote}`
+        : `Added ${created.length}, but ${failed} failed — try those again${dupNote}`,
     )
     if (failed > 0) throw new Error('partial failure')
   }
@@ -280,10 +380,10 @@ export default function App() {
     localStorage.getItem(selfiePromptKey!) !== '1'
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20">
       {showSelfiePrompt && (
         <SelfieOnboarding
-          onDone={(analysis) => {
+          onDone={(analysis, ageRange) => {
             setSelfiePromptDismissed(true)
             try {
               if (selfiePromptKey) localStorage.setItem(selfiePromptKey, '1')
@@ -292,6 +392,7 @@ export default function App() {
               setPreferences((prev) => ({
                 ...prev,
                 colorAnalysis: analysis,
+                ...(ageRange ? { ageRange } : {}),
                 // Mirror the server: the detected department becomes the
                 // wardrobe-focus default unless one was already chosen.
                 wardrobeFocus:
@@ -320,15 +421,17 @@ export default function App() {
       {view === 'landing' && (
         <main className="mx-auto max-w-6xl px-4 pb-24 pt-10 sm:px-8 sm:pt-16">
           <div className="mx-auto max-w-2xl text-center">
-            <span className="inline-block rounded-full bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-coral shadow-sm ring-1 ring-black/5">
-              Pack from what you already own
-            </span>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <span className="inline-block rounded-full bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-coral shadow-sm ring-1 ring-black/5">
+                {t('packFromOwn')}
+              </span>
+              <StreakChip />
+            </div>
             <h1 className="mt-5 font-display text-4xl font-bold leading-tight sm:text-6xl">
-              Dress for the trip,<br className="hidden sm:block" /> not just the weather.
+              {t('heroTitle')}
             </h1>
             <p className="mx-auto mt-4 max-w-md text-base text-ink/60 sm:text-lg">
-              Tell Heygotchu where you're going. It reads your closet, checks the forecast, and builds a
-              day-by-day outfit plan that matches the vibe.
+              {t('heroSub')}
             </p>
           </div>
 
@@ -341,12 +444,12 @@ export default function App() {
           <div className="mt-8 flex justify-center">
             <div className="inline-flex rounded-full bg-white p-1 shadow-sm ring-1 ring-black/5">
               <button
-                onClick={() => setPlanMode('trip')}
+                onClick={() => setPlanMode('today')}
                 className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                  planMode === 'trip' ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink'
+                  planMode === 'today' ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink'
                 }`}
               >
-                ✈️ Trip
+                {t('today')}
               </button>
               <button
                 onClick={() => setPlanMode('occasion')}
@@ -354,12 +457,22 @@ export default function App() {
                   planMode === 'occasion' ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink'
                 }`}
               >
-                🎉 Occasion
+                {t('occasion')}
+              </button>
+              <button
+                onClick={() => setPlanMode('trip')}
+                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                  planMode === 'trip' ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink'
+                }`}
+              >
+                {t('trip')}
               </button>
             </div>
           </div>
 
-          {planMode === 'trip' ? (
+          {planMode === 'today' ? (
+            <TodayMode closet={closet} preferences={preferences} />
+          ) : planMode === 'trip' ? (
             <div className="mt-8">
               <TripForm
                 initial={formValues}
@@ -373,8 +486,17 @@ export default function App() {
           ) : (
             <OccasionPlanner closet={closet} preferences={preferences} onToast={setToastMessage} />
           )}
+
+          <SaveTheDate onToast={setToastMessage} />
         </main>
       )}
+
+      {view === 'dates' && (
+        <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-8">
+          <SaveTheDate onToast={setToastMessage} />
+        </main>
+      )}
+
 
       {view === 'loading' && <LoadingScreen destination={formValues.destination} />}
 
@@ -401,13 +523,16 @@ export default function App() {
           onBulkAdd={handleBulkAddItems}
           onDelete={handleDeleteClothingItem}
           onBulkDelete={handleBulkDeleteItems}
+          onUpdatePhoto={handleUpdateItemPhoto}
           onLoadStarter={handleLoadStarterCloset}
           onBack={() => setView(currentTrip ? 'results' : 'landing')}
+          onToast={setToastMessage}
         />
       )}
 
       {view === 'preferences' && (
         <>
+          <AppSettings onBack={() => setView(currentTrip ? 'results' : 'landing')} />
           <ClothingPreferencesPanel
             preferences={preferences}
             onSave={handleSavePreferences}
@@ -429,6 +554,30 @@ export default function App() {
           onOpen={handleOpenSavedTrip}
           onDelete={handleDeleteTrip}
           onBack={() => setView('landing')}
+        />
+      )}
+
+
+      {view !== 'loading' && (
+        <BottomNav
+          active={
+            view === 'landing' || view === 'results'
+              ? 'home'
+              : view === 'closet'
+                ? 'closet'
+                : view === 'dates'
+                  ? 'dates'
+                  : view === 'preferences'
+                    ? 'you'
+                    : 'other'
+          }
+          onNavigate={(target) => {
+            if (target === 'home') setView('landing')
+            else if (target === 'closet') setView('closet')
+            else if (target === 'dates') setView('dates')
+            else setView('preferences')
+          }}
+          onAdd={handleAddClothingItem}
         />
       )}
 

@@ -58,6 +58,11 @@ export function meetsHardCoverageRules(
 ): boolean {
   const hijabi = preferences.modestyStyle === 'hijabi'
 
+  // Coverage rules apply ONLY when the user opted in — hijabi mode or the
+  // Preference-mode toggle. The app never imposes modesty on anyone: with
+  // neither selected, everything in the closet is fair game.
+  if (!hijabi && !preferences.moreCoverage) return true
+
   if (COVERAGE_EXEMPT_CATEGORIES.includes(item.category)) {
     if (item.category === 'swimwear' && hijabi) {
       return item.coverage?.swimStyle === 'modest-swim'
@@ -285,7 +290,7 @@ export function generateOutfitPlan(
   if (!hasTopOrDress) {
     gaps.add(
       rawTopOrDress
-        ? 'Every top or dress in your closet is excluded by your coverage preferences (sleeveless, strapless, or too short) — add one with sleeves and knee-length or longer.'
+        ? 'Every top or dress in your closet sits outside your saved preferences — adjust Preference mode, or add a few pieces that match your settings.'
         : 'No tops or dresses in your closet yet — add a few to build outfits.',
     )
   }

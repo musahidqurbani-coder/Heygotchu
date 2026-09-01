@@ -6,17 +6,34 @@ import type { ClothingPreferences } from '../types'
 export function buildInspirationQuery(
   preferences: ClothingPreferences,
   context: string, // occasion label or destination
-  garment: 'top' | 'bottom' | 'accessory',
+  garment: 'top' | 'bottom' | 'accessory' | 'footwear' | 'dress',
+  // Which palette color to search with — lets Top/Bottom/Accessories each
+  // take a different color from the palette instead of all using the first.
+  colorName?: string,
 ): { query: string; fallback: string } {
-  const color = preferences.colorAnalysis?.bestColors?.[0]?.name ?? ''
+  const color = colorName ?? preferences.colorAnalysis?.bestColors?.[0]?.name ?? ''
   const modest = preferences.modestyStyle === 'hijabi' ? 'modest' : ''
   const style = preferences.stylePreferences[0] ? preferences.stylePreferences[0].split(' ')[0].toLowerCase() : ''
   const gender = preferences.wardrobeFocus === 'unisex' ? '' : preferences.wardrobeFocus
   const garmentWords =
-    garment === 'top' ? 'outfit top' : garment === 'bottom' ? 'outfit bottom trousers skirt' : 'jewellery accessories'
-  const query = [color, modest, style, gender, context, garmentWords].filter(Boolean).join(' ')
-  const fallbackWord = garment === 'top' ? 'kurta' : garment === 'bottom' ? 'trousers' : 'jewellery'
-  const fallback = [color, gender, fallbackWord].filter(Boolean).join(' ')
+    garment === 'top'
+      ? 'outfit top'
+      : garment === 'bottom'
+        ? 'outfit bottom trousers skirt'
+        : garment === 'footwear'
+          ? 'shoes footwear'
+          : garment === 'dress'
+            ? 'dress ethnic wear'
+            : 'jewellery accessories'
+  // Occasion labels can carry UI punctuation ("Haldi / Turmeric ceremony")
+  // that hurts search relevance — flatten to plain words.
+  const cleanContext = context.replace(/[/·]+/g, ' ').replace(/\s+/g, ' ').trim()
+  const query = [color, modest, style, gender, cleanContext, garmentWords].filter(Boolean).join(' ')
+  const fallbackWord =
+    garment === 'top' ? 'kurta' : garment === 'bottom' ? 'trousers' : garment === 'footwear' ? 'shoes' : garment === 'dress' ? 'dress' : 'jewellery'
+  // The fallback keeps the occasion's leading word (Haldi, Diwali, Bali) so
+  // simplified retries still return event-relevant products.
+  const fallback = [color, gender, cleanContext.split(' ')[0], fallbackWord].filter(Boolean).join(' ')
   return { query, fallback }
 }
 
@@ -33,13 +50,9 @@ interface InspirationRowProps {
 // here once that clears.
 const AMAZON_PARTNER_TAG = 'mujahidisla04-21'
 
-// Clean quick-search links: one tap opens the exact preference-driven query
-// on Pinterest, Google Images, or Amazon Fashion (tagged for commission).
-// (In-app thumbnails only ever come from the embedded Google widget — no
-// low-quality stock fallbacks here.)
+// Clean quick-search link: one tap opens the exact preference-driven query
+// on Amazon Fashion (tagged for commission).
 export default function InspirationRow({ label, query }: InspirationRowProps) {
-  const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`
-  const pinterestUrl = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}`
   const amazonUrl = `https://www.amazon.in/s?k=${encodeURIComponent(query)}&i=fashion&tag=${AMAZON_PARTNER_TAG}`
 
   return (
@@ -47,12 +60,6 @@ export default function InspirationRow({ label, query }: InspirationRowProps) {
       <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">{label}</p>
       <a href={amazonUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-tangerine hover:underline">
         🛍️ Shop on Amazon →
-      </a>
-      <a href={pinterestUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-coral hover:underline">
-        📌 Pinterest →
-      </a>
-      <a href={googleUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-sky hover:underline">
-        Google Images →
       </a>
     </div>
   )

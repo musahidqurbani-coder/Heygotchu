@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import PhotoLightbox from './PhotoLightbox'
-import InspirationSection from './InspirationSection'
 import AmazonShopBlocks from './AmazonShopBlocks'
-import { buildInspirationQuery } from './InspirationRow'
 import type { ClothingItem, ClothingPreferences } from '../types'
 import {
   aiApi,
@@ -150,7 +148,7 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
 
         {/* Shoppable palette-matched picks, right after the colors section
             and before the AI-composed outfits. */}
-        <AmazonShopBlocks preferences={preferences} context={result.occasionLabel} />
+        <AmazonShopBlocks preferences={preferences} context={result.occasionLabel} closet={closet} />
 
         {result.generalAdvice && (
           <p className="rounded-2xl bg-white px-4 py-3 text-sm text-ink/70 shadow-sm ring-1 ring-black/5">
@@ -160,7 +158,7 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
 
         {result.outfits.length === 0 && (
           <p className="rounded-2xl bg-white px-4 py-6 text-center text-sm text-ink/50 shadow-sm ring-1 ring-black/5">
-            No outfits could be composed — try adding a few more items to your closet first.
+            Logic is not logicing 💀 — your closet needs a few more pieces for this one. Add some fits first.
           </p>
         )}
 
@@ -217,26 +215,6 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
             </div>
           )
         })}
-
-        {/* Photo examples come last — the palette and real-closet outfits
-            above are always the first recommendations. Queries are built
-            from the user's preferences (palette, modesty, style), falling
-            back to just their gender + occasion when none are set. */}
-        {(() => {
-          const top = buildInspirationQuery(preferences, result.occasionLabel, 'top')
-          const bottom = buildInspirationQuery(preferences, result.occasionLabel, 'bottom')
-          return (
-            <div className="space-y-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-              <h3 className="font-display text-lg font-semibold">Style inspiration 🛍️</h3>
-              <InspirationSection
-                tabs={[
-                  { label: 'Tops', query: top.query, fallback: top.fallback },
-                  { label: 'Bottoms', query: bottom.query, fallback: bottom.fallback },
-                ]}
-              />
-            </div>
-          )
-        })()}
 
         {lightbox && <PhotoLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
       </div>
@@ -305,7 +283,7 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
           disabled={busy}
           className="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
         >
-          {busy ? 'Styling your outfits…' : '✨ Get outfit ideas'}
+          {busy ? 'Styling your outfits…' : '✨ Glow Up'}
         </button>
         <p className="text-center text-xs text-ink/40">
           Uses one AI run — outfits come from your own closet ({closet.length} items), styled for the occasion.

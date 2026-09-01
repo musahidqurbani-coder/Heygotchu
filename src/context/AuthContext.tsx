@@ -59,7 +59,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token])
 
   const signup = useCallback(async (email: string, password: string) => {
-    const res = await authApi.signup(email, password)
+    // Refer & earn: an invite link lands as heygotchu.com/?ref=<user id> —
+    // carry that code through signup so the referrer gets their streak days.
+    let referralCode: string | undefined
+    try {
+      referralCode = new URLSearchParams(window.location.search).get('ref') ?? undefined
+    } catch { /* no window (tests) */ }
+    const res = await authApi.signup(email, password, referralCode)
     return res.user
   }, [])
 

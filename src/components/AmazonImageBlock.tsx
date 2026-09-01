@@ -1,63 +1,46 @@
-import { useEffect, useRef, useState } from 'react'
-import { loadCse, runExclusive } from '../lib/googleCse'
+import { useEffect, useState } from 'react'
+import { imagesApi, type ExampleImage } from '../lib/apiClient'
 
 const AMAZON_PARTNER_TAG = 'mujahidisla04-21'
 
 interface AmazonImageBlockProps {
   label: string
   query: string // color + garment + occasion, e.g. "Warm Teal women top Diwali"
+  fallbackQuery?: string
 }
 
-let blockCounter = 0
+// Appends the affiliate tag to a real Amazon.in product/page URL from search
+// results so a click on any of the 5 thumbnails still earns commission, not
+// just the "Shop on Amazon" link.
+function taggedAmazonUrl(pageUrl: string | undefined, searchFallback: string): string {
+  if (!pageUrl || !/amazon\.[a-z.]+\//.test(pageUrl)) return searchFallback
+  return pageUrl + (pageUrl.includes('?') ? '&' : '?') + `tag=${AMAZON_PARTNER_TAG}`
+}
 
-// One category's row of up to 5 real product images sourced from Amazon.in
-// via the embedded Google Search widget (Google's own index — no scraping,
-// no API key). Every image and the header link both point to a tagged
-// Amazon search so a click always carries the affiliate tag; this is a
-// stand-in for live Creators API product cards until Amazon approves API
-// access for this account. The render+execute sequence runs through the
-// shared runExclusive queue since Google's widget silently fails when
-// multiple instances initialize at once, anywhere on the page.
-export default function AmazonImageBlock({ label, query }: AmazonImageBlockProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const gnameRef = useRef(`heygotchu-amz-${++blockCounter}`)
-  const [mode, setMode] = useState<'loading' | 'ready' | 'fallback'>('loading')
+// One category's row of up to 5 real Amazon.in product photos, sourced from
+// the /images/examples endpoint (Google Custom Search JSON API restricted to
+// amazon.in, falling back to Unsplash/Openverse if that's not configured).
+// Every thumbnail links to the real product page it came from (tagged), or
+// the tagged category search if that URL isn't an Amazon page.
+export default function AmazonImageBlock({ label, query, fallbackQuery }: AmazonImageBlockProps) {
+  const [images, setImages] = useState<ExampleImage[] | null>(null)
 
   const amazonSearchUrl = `https://www.amazon.in/s?k=${encodeURIComponent(query)}&i=fashion&tag=${AMAZON_PARTNER_TAG}`
 
   useEffect(() => {
     let cancelled = false
-    runExclusive(() =>
-      loadCse().then(async () => {
-        if (cancelled || !containerRef.current || !window.google?.search?.cse) throw new Error('cse unavailable')
-        window.google.search.cse.element.render(
-          { div: containerRef.current, tag: 'searchresults-only', gname: gnameRef.current },
-          {
-            enableImageSearch: true,
-            defaultToImageSearch: true,
-            imageSearchLayout: 'column',
-            imageSearchResultSetSize: 5,
-          },
-        )
-        for (let i = 0; i < 25; i++) {
-          const el = window.google.search.cse.element.getElement(gnameRef.current)
-          if (el) {
-            el.execute(`${query} site:amazon.in`)
-            if (!cancelled) setMode('ready')
-            return
-          }
-          await new Promise((r) => setTimeout(r, 200))
-        }
-        throw new Error('cse element never registered')
-      }),
-    ).catch(() => {
-      if (!cancelled) setMode('fallback')
-    })
+    imagesApi
+      .examples(query, fallbackQuery)
+      .then((examples) => {
+        if (!cancelled) setImages(examples)
+      })
+      .catch(() => {
+        if (!cancelled) setImages([])
+      })
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query])
+  }, [query, fallbackQuery])
 
   return (
     <div>
@@ -67,7 +50,9 @@ export default function AmazonImageBlock({ label, query }: AmazonImageBlockProps
           Shop on Amazon →
         </a>
       </div>
-      {mode === 'fallback' ? (
+      {images === null ? (
+        <p className="text-xs text-ink/40">Finding ideas…</p>
+      ) : images.length === 0 ? (
         <a
           href={amazonSearchUrl}
           target="_blank"
@@ -77,10 +62,32 @@ export default function AmazonImageBlock({ label, query }: AmazonImageBlockProps
           🛍️ See {label.toLowerCase()} ideas on Amazon →
         </a>
       ) : (
-        <>
-          {mode === 'loading' && <p className="text-xs text-ink/40">Finding ideas…</p>}
-          <div ref={containerRef} className="overflow-hidden rounded-xl [&_.gsc-control-cse]:!p-0 [&_.gsc-control-cse]:!border-0" />
-        </>
+        <div className="grid grid-cols-5 gap-1.5">
+          {images.map((img, i) => (
+            <a
+              key={img.thumb + i}
+              href={taggedAmazonUrl(img.pageUrl, amazonSearchUrl)}
+              target="_blank"
+              rel="noreferrer"
+              className="block aspect-square overflow-hidden rounded-lg bg-cloud ring-1 ring-black/5 transition hover:opacity-85"
+            >
+              {/* Prefer the full-size image (Amazon's media host is far more
+                  reliable to hotlink than Google's thumbnail cache); fall
+                  back to the thumbnail, then hide a doubly-broken tile. */}
+              <img
+                src={img.url ?? img.thumb}
+                alt={img.alt ?? label}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  const el = e.currentTarget
+                  if (img.thumb && el.src !== img.thumb) el.src = img.thumb
+                  else el.style.visibility = 'hidden'
+                }}
+              />
+            </a>
+          ))}
+        </div>
       )}
     </div>
   )

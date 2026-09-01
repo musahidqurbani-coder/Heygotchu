@@ -85,9 +85,9 @@ export default function ClothingItemCard({
       {!recommended && (
         <span
           className="absolute left-2 top-2 z-10 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-semibold text-white"
-          title="Excluded from outfit generation by your clothing preferences"
+          title="Outside your saved preferences — turn Preference mode off to include it"
         >
-          Not recommended
+          Outside your preferences
         </span>
       )}
 

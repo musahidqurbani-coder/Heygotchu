@@ -99,7 +99,7 @@ export default function TripForm({
 
         <div className="flex items-center justify-between rounded-2xl bg-cloud px-4 py-3 text-sm">
           <span className="text-ink/60">
-            More Coverage is {moreCoverage ? 'on' : 'off'} — applied from your saved preferences.
+            Preference mode is {moreCoverage ? 'on' : 'off'} — applied from your saved preferences.
           </span>
           <button
             type="button"

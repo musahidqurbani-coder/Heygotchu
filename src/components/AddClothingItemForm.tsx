@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import {
   BOTTOM_STYLES,
   CLOTHING_CATEGORIES,
@@ -26,6 +26,7 @@ import {
   type WarmthLevel,
 } from '../types'
 import { resizeImageFile } from '../lib/imageResize'
+import { isolateGarment } from '../lib/backgroundRemoval'
 import { aiApi, ApiClientError } from '../lib/apiClient'
 
 const SLEEVE_LABEL: Record<SleeveLength, string> = {
@@ -61,6 +62,9 @@ const SWIM_STYLE_LABEL: Record<SwimStyle, string> = {
 interface AddClothingItemFormProps {
   onAdd: (item: Omit<ClothingItem, 'id' | 'createdAt'>) => void
   onClose: () => void
+  // A photo captured before the form opened (the camera button flow) —
+  // processed on mount exactly as if it had been picked via the file input.
+  initialFile?: File
 }
 
 const TAG_OPTIONS = [
@@ -68,7 +72,7 @@ const TAG_OPTIONS = [
   'food', 'culture', 'adventure', 'snow', 'relaxation',
 ]
 
-export default function AddClothingItemForm({ onAdd, onClose }: AddClothingItemFormProps) {
+export default function AddClothingItemForm({ onAdd, onClose, initialFile }: AddClothingItemFormProps) {
   const [name, setName] = useState('')
   const [category, setCategory] = useState<ClothingCategory>('top')
   const [gender, setGender] = useState<ClothingGender>('unisex')
@@ -78,6 +82,7 @@ export default function AddClothingItemForm({ onAdd, onClose }: AddClothingItemF
   const [weatherproof, setWeatherproof] = useState(false)
   const [tags, setTags] = useState<string[]>([])
   const [photo, setPhoto] = useState<string | undefined>(undefined)
+  const [photoCleaned, setPhotoCleaned] = useState(false)
   const [nameError, setNameError] = useState<string | undefined>(undefined)
   const [aiTagging, setAiTagging] = useState(false)
   const [aiNote, setAiNote] = useState<string | undefined>(undefined)
@@ -112,9 +117,33 @@ export default function AddClothingItemForm({ onAdd, onClose }: AddClothingItemF
   async function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    await processFile(file)
+  }
+
+  // A camera-captured photo arrives via the initialFile prop instead of the
+  // file input — run it through the exact same pipeline on mount.
+  useEffect(() => {
+    if (initialFile) void processFile(initialFile)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function processFile(file: File) {
     try {
       const dataUrl = await resizeImageFile(file)
       setPhoto(dataUrl)
+      setPhotoCleaned(false)
+      // Isolate the garment onto a clean background once it's ready — the
+      // plain photo already shows above so there's nothing to wait on. If it
+      // finishes before saving, the item is stored already-cleaned;
+      // otherwise the background queue picks it up once, after save.
+      isolateGarment(dataUrl)
+        .then((cleaned) => {
+          setPhoto(cleaned)
+          setPhotoCleaned(true)
+        })
+        .catch(() => {
+          // a photo it can't process — the plain photo already set above stays
+        })
     } catch {
       // ignore — item can still be saved without a photo
     }
@@ -189,6 +218,7 @@ export default function AddClothingItemForm({ onAdd, onClose }: AddClothingItemF
       weatherproof,
       tags,
       photo,
+      photoCleaned,
       source,
       coverage: Object.keys(coverage).length > 0 ? coverage : undefined,
     })

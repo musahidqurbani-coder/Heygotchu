@@ -4,12 +4,19 @@ import './index.css'
 import App from './App.tsx'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
+import { LanguageProvider } from './lib/i18n.tsx'
+import { initVibe } from './lib/vibes.ts'
+
+// Apply the saved vibe before first paint so there's no theme flash.
+initVibe()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <App />
+        <LanguageProvider>
+          <App />
+        </LanguageProvider>
       </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,

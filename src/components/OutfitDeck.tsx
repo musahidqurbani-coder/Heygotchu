@@ -149,7 +149,7 @@ export default function OutfitDeck({ days, closet, preferences, onToast }: Outfi
           onClick={() => mark('packed')}
           className="flex-1 rounded-full bg-ink px-4 py-3 text-sm font-bold uppercase tracking-wide text-white ring-2 ring-ink transition active:translate-y-0.5"
         >
-          ✓ Pack it
+          🔥 Drip — pack it
         </button>
       </div>
 

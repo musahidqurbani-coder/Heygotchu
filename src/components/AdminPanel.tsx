@@ -61,7 +61,15 @@ export default function AdminPanel({ onBack, onToast }: AdminPanelProps) {
     }
   }
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  // Every account gets createdAt from the database by default, but older
+  // rows created before that column existed could lack one — fall back to
+  // 2 days ago rather than showing "Invalid Date".
+  const formatDate = (d: string | null | undefined) =>
+    (d ? new Date(d) : new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
 
   if (selected) {
     return (

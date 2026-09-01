@@ -101,6 +101,7 @@ export interface ClothingItem {
   tags: string[]
   coverage?: CoverageProfile
   photo?: string // data URL, optional
+  photoCleaned?: boolean // background removed + cropped and saved — never reprocessed
   source?: 'manual' | 'ai-tagged' // how this item's details were entered
   createdAt: number
 }
@@ -175,7 +176,11 @@ export interface ClothingPreferences {
   modestyStyle: ModestyStyle
   wardrobeFocus: ClothingGender // which department to default new items/suggestions to
   stylePreferences: StylePreference[]
-  moreCoverage: boolean // the "More Coverage" toggle — defaults to true
+  // Preference mode: when ON, suggestions are limited to the user's saved
+  // sleeve/length/fit preferences. OFF by default — modesty is only ever
+  // applied when the user chooses it, never imposed.
+  moreCoverage: boolean
+  ageRange?: '13-17' | '18-24' | '25-34' | '35+' // from the selfie-skip questions
 }
 
 export const DEFAULT_CLOTHING_PREFERENCES: ClothingPreferences = {
@@ -188,7 +193,7 @@ export const DEFAULT_CLOTHING_PREFERENCES: ClothingPreferences = {
   modestyStyle: 'no-preference',
   wardrobeFocus: 'unisex',
   stylePreferences: [],
-  moreCoverage: true,
+  moreCoverage: false,
 }
 
 export type TripVibe =

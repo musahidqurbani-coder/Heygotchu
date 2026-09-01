@@ -41,11 +41,39 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // Login streak, counted in whole days (Asia/Kolkata): opening the app on
+  // consecutive days grows it, a missed day resets it to 1. Tier thresholds
+  // (Silver → Diamond) are derived from streakCount in the /streak route.
+  streakCount   Int     @default(0)
+  bestStreak    Int     @default(0)
+  lastActiveDay String? // 'YYYY-MM-DD' of the last counted day
+  // Referral ("refer & earn 5 Daily Grind days"): set once at signup to the
+  // referrer's user id — its presence is what stops double-crediting.
+  referredById  String?
+
   otpCodes    OtpCode[]
   closetItems ClothingItem[]
   preferences ClothingPreferences?
   eventPlans  EventPlan[]
   aiRuns      AiRun[]
+  savedDates  SavedDate[]
+}
+
+// "Save the date": a trip or occasion pinned to a calendar date, with a
+// reminder ladder (days-before-event marks, e.g. [5,2,1,0]) the app
+// surfaces as the date approaches.
+model SavedDate {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  kind        String // 'occasion' | 'trip'
+  date        String // 'YYYY-MM-DD'
+  reminders   String // JSON-serialized number[] of days-before marks
+  eventPlanId String? // optional link to a saved EventPlan
+  createdAt   DateTime @default(now())
+
+  @@index([userId, date])
 }
 
 // One row per AI call (tagging, suggestions, outfits, selfie analysis) —
@@ -87,6 +115,9 @@ model ClothingItem {
   tags         String // JSON-serialized string[]
   coverage     String? // JSON-serialized CoverageProfile
   photo        String? // data URL, optional
+  // True once the photo has been background-cleaned and cropped — the
+  // durable done-marker that stops any client from ever re-processing it.
+  photoCleaned Boolean  @default(false)
   source       String   @default("manual") // 'manual' | 'ai-tagged'
   createdAt    DateTime @default(now())
 

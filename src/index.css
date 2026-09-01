@@ -14,6 +14,225 @@
   --color-grape: #8a5cf6;
 }
 
+/* --- My Vibe: user-selectable looks -----------------------------------------
+   Tailwind v4 utilities read these variables at runtime, so redefining them
+   per [data-vibe] reskins every component — including bg-white/ring-black
+   usages — without touching a single class name. Applied to <html> by
+   src/lib/vibes.ts. */
+
+html[data-vibe='noir'] {
+  --color-cloud: #131118;
+  --color-ink: #ece7de;
+  --color-white: #1e1a26;
+  --color-black: #ece7de;
+  --color-coral: #d8b46a;
+  --color-tangerine: #d8b46a;
+  --color-sun: #d8b46a;
+  --color-sky: #9db8ea;
+}
+
+html[data-vibe='soleil'] {
+  --color-cloud: #fdf0e4;
+  --color-ink: #47281c;
+  --color-coral: #cc6c4a;
+  --color-tangerine: #d9a441;
+  --color-sun: #f2c94c;
+  --color-sky: #b4592f;
+}
+
+html[data-vibe='orchid'] {
+  --color-cloud: #f4ecfb;
+  --color-ink: #4a3a63;
+  --color-coral: #8e6fe0;
+  --color-tangerine: #d67bb0;
+  --color-sun: #f0a63a;
+  --color-sky: #8e6fe0;
+}
+
+html[data-vibe='jungalow'] {
+  --color-cloud: #f3ecdd;
+  --color-ink: #2e3524;
+  --color-coral: #c96f3b;
+  --color-tangerine: #b98a2e;
+  --color-sun: #d9b25f;
+  --color-mint: #5d7d4b;
+  --color-sky: #4c6a3c;
+}
+
+html[data-vibe='riviera'] {
+  --color-cloud: #fbfaf5;
+  --color-ink: #17203a;
+  --color-coral: #2456c9;
+  --color-tangerine: #b98a2e;
+  --color-sun: #f2c94c;
+  --color-sky: #2456c9;
+}
+
+html[data-vibe='aurora'] {
+  --color-cloud: #0e1026;
+  --color-ink: #eef0ff;
+  --color-white: #1d1a38;
+  --color-black: #eef0ff;
+  --color-coral: #7c5cff;
+  --color-tangerine: #38d6c2;
+  --color-sun: #38d6c2;
+  --color-mint: #38d6c2;
+  --color-sky: #9db8ea;
+}
+
+html[data-vibe='wardrobe'] {
+  --color-cloud: #e9ddc8;
+  --color-ink: #3a2c1c;
+  --color-white: #fdf9ef;
+  --color-coral: #6d4a2e;
+  --color-tangerine: #a5854e;
+  --color-sun: #d9b25f;
+  --color-sky: #6d4a2e;
+  --color-mint: #7a8a5a;
+}
+
+html[data-vibe='scrapbook'] {
+  --color-cloud: #f4eefc;
+  --color-ink: #17131f;
+  --color-coral: #8e6fe0;
+  --color-tangerine: #d67bb0;
+  --color-sun: #ffde59;
+  --color-mint: #9be8c5;
+  --color-sky: #7cc5ff;
+}
+html[data-vibe='scrapbook'] body {
+  background-image: radial-gradient(#dcd0f0 1.3px, transparent 1.3px);
+  background-size: 16px 16px;
+}
+
+html[data-vibe='bento'] {
+  --color-cloud: #f2f1ed;
+  --color-ink: #23211d;
+  --color-coral: #23a094;
+  --color-tangerine: #f0a63a;
+  --color-mint: #74dfa2;
+  --color-sky: #7cc5ff;
+}
+
+html[data-vibe='porcelain'] {
+  --color-cloud: #e6eaf1;
+  --color-ink: #3d4552;
+  --color-white: #e6eaf1;
+  --color-coral: #4a6fdc;
+  --color-tangerine: #4a6fdc;
+  --color-sun: #f2c94c;
+  --color-sky: #4a6fdc;
+}
+
+/* --- Structural vibe layers -------------------------------------------------
+   Beyond color tokens: each vibe reshapes the app's actual surfaces — card
+   material, borders, shadows, tilt — by restyling the shared card pattern
+   (.bg-white.rounded-2xl/3xl) and pill buttons. This is what makes Aurora
+   read as glass, Scrapbook as stickers, Porcelain as neumorphism, instead of
+   a palette swap. */
+
+/* Aurora — real glassmorphism: glowing ground, frosted translucent cards. */
+html[data-vibe='aurora'] body {
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(124, 92, 255, 0.35), transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(56, 214, 194, 0.22), transparent 45%);
+  background-attachment: fixed;
+}
+html[data-vibe='aurora'] .bg-white.rounded-3xl,
+html[data-vibe='aurora'] .bg-white.rounded-2xl {
+  background-color: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+html[data-vibe='aurora'] nav.fixed {
+  background-color: rgba(20, 18, 44, 0.85);
+  backdrop-filter: blur(16px);
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Scrapbook — sticker sheets: hard ink borders, offset shadows, a tilt. */
+html[data-vibe='scrapbook'] .bg-white.rounded-3xl,
+html[data-vibe='scrapbook'] .bg-white.rounded-2xl {
+  border: 2.5px solid #17131f;
+  border-radius: 18px;
+  box-shadow: 6px 6px 0 #ffb3d9;
+}
+html[data-vibe='scrapbook'] .bg-white.rounded-3xl:nth-of-type(even),
+html[data-vibe='scrapbook'] .bg-white.rounded-2xl:nth-of-type(even) {
+  box-shadow: 6px 6px 0 #9be8c5;
+  transform: rotate(0.6deg);
+}
+html[data-vibe='scrapbook'] .bg-white.rounded-3xl:nth-of-type(odd) {
+  transform: rotate(-0.5deg);
+}
+html[data-vibe='scrapbook'] .rounded-full.bg-ink,
+html[data-vibe='scrapbook'] .rounded-full.bg-coral {
+  border: 2px solid #17131f;
+  box-shadow: 3px 3px 0 #17131f;
+}
+
+/* Wardrobe — the tailor's studio: squared paper cards with stitched seams. */
+html[data-vibe='wardrobe'] .bg-white.rounded-3xl,
+html[data-vibe='wardrobe'] .bg-white.rounded-2xl {
+  border-radius: 10px;
+  background-image: linear-gradient(180deg, #fdf9ef, #f7f0dd);
+  border: 1px solid #e2d5b8;
+  outline: 1.5px dashed rgba(109, 74, 46, 0.45);
+  outline-offset: -8px;
+  box-shadow: 0 5px 12px rgba(74, 47, 26, 0.18);
+}
+html[data-vibe='wardrobe'] nav.fixed {
+  background-image: linear-gradient(180deg, #6d4a2e, #4a2f1a);
+  border-top: none;
+}
+html[data-vibe='wardrobe'] nav.fixed button { color: #d9c3a0; }
+
+/* Bento — flat tile grid: tight radius, hairline borders, zero drop shadow. */
+html[data-vibe='bento'] .bg-white.rounded-3xl,
+html[data-vibe='bento'] .bg-white.rounded-2xl {
+  border-radius: 16px;
+  border: 1px solid #e6e3da;
+  box-shadow: none;
+}
+html[data-vibe='bento'] .rounded-full.bg-ink,
+html[data-vibe='bento'] .rounded-full.bg-coral {
+  border-radius: 12px;
+}
+
+/* Noir — after-dark luxury: champagne hairlines and a soft gold bloom. */
+html[data-vibe='noir'] .bg-white.rounded-3xl,
+html[data-vibe='noir'] .bg-white.rounded-2xl {
+  border: 1px solid rgba(216, 180, 106, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 24px rgba(216, 180, 106, 0.06);
+}
+
+/* Porcelain — neumorphism: everything pressed from one soft surface. */
+html[data-vibe='porcelain'] .bg-white.rounded-3xl,
+html[data-vibe='porcelain'] .bg-white.rounded-2xl {
+  border-radius: 22px;
+  box-shadow: 7px 7px 14px #c5cbd6, -7px -7px 14px #ffffff;
+  border: none;
+}
+html[data-vibe='porcelain'] .rounded-full.bg-ink,
+html[data-vibe='porcelain'] .rounded-full.bg-coral {
+  box-shadow: 5px 5px 10px #c2c8d3, -5px -5px 10px #ffffff;
+}
+html[data-vibe='porcelain'] nav.fixed {
+  background-color: #e6eaf1;
+  box-shadow: 0 -6px 14px #c9cfda;
+  border-top: none;
+}
+
+/* Clay-style Orchid — inflated puffy cards you want to poke. */
+html[data-vibe='orchid'] .bg-white.rounded-3xl,
+html[data-vibe='orchid'] .bg-white.rounded-2xl {
+  border-radius: 26px;
+  border: none;
+  box-shadow: 0 16px 28px rgba(122, 90, 190, 0.18), inset 0 6px 12px rgba(255, 255, 255, 0.95),
+    inset 0 -8px 14px rgba(158, 120, 220, 0.16);
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -28,6 +247,38 @@ body {
 ::selection {
   background-color: var(--color-coral);
   color: white;
+}
+
+/* The glossy camera lens from the design directions — black glass barrel,
+   iridescent iris, specular sweep — used as the bottom nav's center button. */
+.nav-lens {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 26%, #565656, #1c1c1c 45%, #050505 78%);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.3),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.9),
+    0 8px 18px rgba(0, 0, 0, 0.45);
+}
+.nav-lens::before {
+  content: '';
+  position: absolute;
+  inset: 27%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 28%, #efe9ff 0%, #b9a4f2 22%, #38d6c2 52%, #0d7a70 74%, #032b28 100%);
+  box-shadow:
+    0 0 8px rgba(56, 214, 194, 0.55),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.55),
+    inset 0 2px 3px rgba(255, 255, 255, 0.5);
+}
+.nav-lens::after {
+  content: '';
+  position: absolute;
+  inset: 5%;
+  border-radius: 50%;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.05) 34%, transparent 46%);
 }
 
 @keyframes float-slow {

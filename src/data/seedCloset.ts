@@ -66,6 +66,9 @@ export function buildStarterCloset(): ClothingItem[] {
 
   return base.map((item, i) => ({
     ...item,
+    // 'starter' marks pre-loaded inventory so "Purge starter items" can
+    // remove exactly these later without touching the user's own clothes.
+    tags: [...item.tags, 'starter'],
     id: makeId('cloth'),
     createdAt: now - (base.length - i),
   }))

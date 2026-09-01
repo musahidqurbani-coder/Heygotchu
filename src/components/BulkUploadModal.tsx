@@ -3,6 +3,8 @@ import Modal from './Modal'
 import PhotoLightbox from './PhotoLightbox'
 import { aiApi, ApiClientError, type TaggedItemResult } from '../lib/apiClient'
 import { resizeImageFile, cropDataUrl } from '../lib/imageResize'
+import { looksLikeSameItem } from '../lib/dupDetect'
+import { isolateGarment } from '../lib/backgroundRemoval'
 import { consumeSharedFiles } from '../lib/sharedIntake'
 import {
   CLOTHING_CATEGORIES,
@@ -39,44 +41,9 @@ interface DetectedItem {
   dupNote?: string
 }
 
-// --- Batch-level duplicate detection ----------------------------------------
-// The same kurta photographed twice (once with jeans, once with shorts)
-// should land in the closet once. Same category + close color + similar
-// name = duplicate; the first occurrence wins.
-
-const NAME_STOPWORDS = new Set(['a', 'an', 'the', 'with', 'and', 'of', 'in'])
-
-function nameTokens(name: string): Set<string> {
-  return new Set(
-    name
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter((t) => t.length > 2 && !NAME_STOPWORDS.has(t)),
-  )
-}
-
-function colorDistance(a: string, b: string): number {
-  const parse = (h: string) => {
-    const m = /^#?([0-9a-f]{6})$/i.exec(h.trim())
-    if (!m) return null
-    const v = parseInt(m[1], 16)
-    return [v >> 16, (v >> 8) & 0xff, v & 0xff]
-  }
-  const ra = parse(a)
-  const rb = parse(b)
-  if (!ra || !rb) return 999
-  return Math.sqrt((ra[0] - rb[0]) ** 2 + (ra[1] - rb[1]) ** 2 + (ra[2] - rb[2]) ** 2)
-}
-
-function looksLikeSameItem(a: Omit<ClothingItem, 'id' | 'createdAt'>, b: Omit<ClothingItem, 'id' | 'createdAt'>): boolean {
-  if (a.category !== b.category) return false
-  if (colorDistance(a.color, b.color) > 70) return false
-  const ta = nameTokens(a.name)
-  const tb = nameTokens(b.name)
-  let shared = 0
-  for (const t of ta) if (tb.has(t)) shared++
-  return shared >= 2 || (shared >= 1 && (a.name.toLowerCase().includes(b.name.toLowerCase()) || b.name.toLowerCase().includes(a.name.toLowerCase())))
-}
+// Batch-level duplicate detection — shared rules live in lib/dupDetect so
+// this modal, add-time checks, and the closet's duplicate review all agree
+// on what "the same garment" means.
 
 function markBatchDuplicates(jobs: PhotoJob[]): PhotoJob[] {
   const kept: Omit<ClothingItem, 'id' | 'createdAt'>[] = []
@@ -125,6 +92,13 @@ function toDraft(tagged: TaggedItemResult, photo: string): DetectedItem {
 // Bulk closet import: up to 20 photos at once. Each photo can contain a
 // whole outfit — every detected piece (top, bottom, scarf, hat, jewelry…)
 // becomes its own row, reviewable before anything is saved.
+// Background-cleaning runs WHILE the user reviews the detected items — one
+// at a time through this chain (parallel model runs would fight over the
+// worker). By the time "Add to closet" is pressed, most items already carry
+// their cleaned, cropped photo and save as photoCleaned — which is what
+// keeps the login-time catch-up queue permanently empty.
+let cleanChain: Promise<void> = Promise.resolve()
+
 export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalProps) {
   const [jobs, setJobs] = useState<PhotoJob[]>([])
   const [processing, setProcessing] = useState(false)
@@ -179,11 +153,16 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
           const tagged = await aiApi.tagPhotoMulti(prepared[i].file)
           // Each detected garment gets cropped out of the photo into its own
           // image, so a single outfit shot becomes visually separate items.
+          // Plain crops only — instant to display. Cleaning starts right
+          // away in the worker (see queueClean) while the user reviews.
           const items = await Promise.all(
             tagged.map(async (t) =>
               toDraft(t, t.boundingBox ? await cropDataUrl(prepared[i].cropSource, t.boundingBox) : prepared[i].preview),
             ),
           )
+          items.forEach((it, m) => {
+            if (it.draft.photo?.startsWith('data:image/jpeg')) queueClean(i, m, it.draft.photo)
+          })
           setJobs((prev) =>
             prev.map((j, k) =>
               k === i
@@ -208,11 +187,92 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
     setProcessing(false)
   }
 
+  function queueClean(jobIdx: number, itemIdx: number, photo: string) {
+    cleanChain = cleanChain.then(async () => {
+      try {
+        const cleaned = await isolateGarment(photo)
+        setJobs((prev) =>
+          prev.map((j, k) =>
+            k === jobIdx
+              ? {
+                  ...j,
+                  items: j.items.map((it, m) =>
+                    m === itemIdx && it.draft.photo === photo
+                      ? { ...it, draft: { ...it.draft, photo: cleaned, photoCleaned: true } }
+                      : it,
+                  ),
+                }
+              : j,
+          ),
+        )
+      } catch {
+        // raw crop stays; the silent login-time net will catch it later
+      }
+    })
+  }
+
   function toggleItem(jobIdx: number, itemIdx: number) {
     setJobs((prev) =>
       prev.map((j, k) =>
         k === jobIdx
           ? { ...j, items: j.items.map((it, m) => (m === itemIdx ? { ...it, included: !it.included } : it)) }
+          : j,
+      ),
+    )
+  }
+
+  // The AI's read is a draft, not a verdict — every row's category and style
+  // can be corrected before anything is saved to the closet.
+  function setItemCategory(jobIdx: number, itemIdx: number, category: ClothingCategory) {
+    setJobs((prev) =>
+      prev.map((j, k) =>
+        k === jobIdx
+          ? {
+              ...j,
+              items: j.items.map((it, m) => (m === itemIdx ? { ...it, draft: { ...it.draft, category } } : it)),
+            }
+          : j,
+      ),
+    )
+  }
+
+  const STYLE_CHOICES: { value: string; label: string; formality: Formality; tag?: string }[] = [
+    { value: 'casual', label: 'Casual', formality: 'casual' },
+    { value: 'office', label: 'Office', formality: 'smart-casual', tag: 'office' },
+    { value: 'party', label: 'Party', formality: 'formal', tag: 'party' },
+    { value: 'sports', label: 'Sports', formality: 'athletic', tag: 'sports' },
+  ]
+
+  function styleValueOf(draft: DetectedItem['draft']): string {
+    if (draft.tags.includes('office')) return 'office'
+    if (draft.tags.includes('party') || draft.tags.includes('festive')) return 'party'
+    if (draft.tags.includes('sports') || draft.formality === 'athletic') return 'sports'
+    if (draft.formality === 'smart-casual') return 'office'
+    if (draft.formality === 'formal') return 'party'
+    return 'casual'
+  }
+
+  function setItemStyle(jobIdx: number, itemIdx: number, value: string) {
+    const choice = STYLE_CHOICES.find((c) => c.value === value)
+    if (!choice) return
+    setJobs((prev) =>
+      prev.map((j, k) =>
+        k === jobIdx
+          ? {
+              ...j,
+              items: j.items.map((it, m) => {
+                if (m !== itemIdx) return it
+                const baseTags = it.draft.tags.filter((t) => !['office', 'party', 'festive', 'sports'].includes(t))
+                return {
+                  ...it,
+                  draft: {
+                    ...it.draft,
+                    formality: choice.formality,
+                    tags: choice.tag ? [...baseTags, choice.tag] : baseTags,
+                  },
+                }
+              }),
+            }
           : j,
       ),
     )
@@ -309,14 +369,26 @@ export default function BulkUploadModal({ onClose, onBulkAdd }: BulkUploadModalP
                               {it.dupNote}
                             </span>
                           )}
-                          <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold capitalize text-ink/60 ring-1 ring-black/10">
-                            {it.draft.category}
-                          </span>
-                          {it.sleeve && (
-                            <span className="hidden shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] text-ink/50 ring-1 ring-black/10 sm:inline">
-                              {it.sleeve}
-                            </span>
-                          )}
+                          <select
+                            value={it.draft.category}
+                            onChange={(e) => setItemCategory(jobIdx, itemIdx, e.target.value as ClothingCategory)}
+                            aria-label={`Category for ${it.draft.name}`}
+                            className="shrink-0 rounded-full bg-white px-2 py-1 text-[11px] font-semibold capitalize text-ink/70 ring-1 ring-black/10"
+                          >
+                            {CLOTHING_CATEGORIES.map((c) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={styleValueOf(it.draft)}
+                            onChange={(e) => setItemStyle(jobIdx, itemIdx, e.target.value)}
+                            aria-label={`Style for ${it.draft.name}`}
+                            className="shrink-0 rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-ink/70 ring-1 ring-black/10"
+                          >
+                            {STYLE_CHOICES.map((c) => (
+                              <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
+                          </select>
                         </div>
                       ))}
                     </div>

@@ -35,7 +35,8 @@ const TAG_TOOL: Anthropic.Tool = {
       tags: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Any that apply: everyday, beach, city, hiking, mountains, nature, food, culture, adventure, snow, relaxation.',
+        description:
+          'Any that apply. Context tags: everyday, beach, city, hiking, mountains, nature, food, culture, adventure, snow, relaxation. Style tags: office (workwear), party (celebration/festive wear), festive (ethnic occasion wear), sports (athletic), rain (rain gear).',
       },
       coverage: {
         type: 'object',
@@ -75,6 +76,18 @@ export interface TaggedClothingItem {
   alreadyInCloset?: boolean
 }
 
+// Shared rubric appended to both tagging prompts. Written after real
+// mis-tags surfaced in family use (a suit labeled party wear, rain boots
+// suggested for the office): the model gets explicit rules instead of
+// guessing from vibes, and the review UI lets the user correct the rest.
+const STYLE_RUBRIC = `
+Formality & style rubric — follow it exactly:
+- Business suits, blazers, collared/button-down shirts, formal trousers, pencil skirts: formality "smart-casual" (or "formal" for full suits/sherwanis worn to ceremonies) AND add the tag "office".
+- Celebration/ethnic occasion wear (lehenga, sharara, anarkali, saree, sherwani, gown, sequins/heavy embroidery): add tags "party" and "festive". These are NOT office wear.
+- Shorts, flip-flops, sliders, crocs, gym shoes, rain boots are NEVER office wear — never give them the "office" tag. Rain boots/raincoats: tag "rain". Athletic gear: formality "athletic" and tag "sports".
+- Plain tees, jeans, everyday kurtas, sneakers: formality "casual", no office/party tag unless clearly styled for it.
+- When torn between two formalities, choose the more casual one.`
+
 export async function tagClothingPhoto(base64Image: string, mediaType: string): Promise<TaggedClothingItem> {
   const anthropic = getClient()
   const message = await anthropic.messages.create({
@@ -92,7 +105,7 @@ export async function tagClothingPhoto(base64Image: string, mediaType: string): 
           },
           {
             type: 'text',
-            text: 'This is a photo of one clothing item from someone\'s closet. Identify its attributes and call record_clothing_item with them. Do not describe or comment on any person, body, or face that may be visible — describe only the garment itself.',
+            text: `This is a photo of one clothing item from someone's closet. Identify its attributes and call record_clothing_item with them. Do not describe or comment on any person, body, or face that may be visible — describe only the garment itself.${STYLE_RUBRIC}`,
           },
         ],
       },
@@ -178,7 +191,7 @@ export async function tagClothingPhotoMulti(
           },
           {
             type: 'text',
-            text: `This photo is from someone's closet and may show one clothing item or several (e.g. a full outfit with a top, bottom, scarf, hat, and jewelry). Record EVERY distinct garment or accessory as its own entry in record_clothing_items — a scarf, hat, or piece of jewelry belongs in the 'accessory' category with a descriptive name (e.g. "Cream wool scarf"), shoes in 'footwear'. Skip anything that isn't clothing. For each item give its boundingBox as fractions of the image (0-1) tightly around that garment plus a small margin, so it can be cropped into its own picture. Do not describe or comment on any person, body, or face that may be visible — describe only the garments.${closetBlock}`,
+            text: `This photo is from someone's closet and may show one clothing item or several (e.g. a full outfit with a top, bottom, scarf, hat, and jewelry). Record EVERY distinct garment or accessory as its own entry in record_clothing_items — a scarf, hat, or piece of jewelry belongs in the 'accessory' category with a descriptive name (e.g. "Cream wool scarf"), shoes in 'footwear'. Skip anything that isn't clothing. For each item give its boundingBox as fractions of the image (0-1) tightly around that garment plus a small margin, so it can be cropped into its own picture. Do not describe or comment on any person, body, or face that may be visible — describe only the garments.${STYLE_RUBRIC}${closetBlock}`,
           },
         ],
       },
@@ -343,9 +356,23 @@ export interface OutfitSuggestionContext {
   dateISO?: string
   modestyStyle: string
   coveragePreference: string
+  moreCoverage?: boolean
   wardrobeFocus: string
   colorAnalysis?: { seasonalType?: string; bestColors?: { hex: string; name: string }[]; avoidColors?: { hex: string; name: string }[] }
   closetLines: string[] // "id | name | category | color | formality | warmth | sleeve"
+}
+
+// Modesty is opt-in, never imposed: only hijabi mode or the user's own
+// Preference-mode toggle activates constraints. With neither selected the
+// model gets an explicit no-restrictions instruction.
+function modestyText(ctx: { modestyStyle: string; moreCoverage?: boolean }): string {
+  if (ctx.modestyStyle === 'hijabi') {
+    return 'The user selected hijabi modesty style — honor it strictly: full sleeves, high necklines, ankle-or-full lengths only, no sleeveless/strapless/backless pieces, and include a hijab/scarf from the closet when one exists.'
+  }
+  if (ctx.moreCoverage) {
+    return 'The user enabled Preference mode — favor fuller sleeves, longer hems, and looser fits per their saved preferences; avoid sleeveless, strapless, backless, deep-necked, or above-knee pieces.'
+  }
+  return 'Apply NO modesty or coverage restrictions — the user has not asked for any. Recommend whatever from the closet suits the occasion best, including sleeveless, short, or fitted pieces.'
 }
 
 export async function suggestOutfitCombos(ctx: OutfitSuggestionContext): Promise<{ outfits: OutfitIdea[]; generalAdvice: string }> {
@@ -361,7 +388,9 @@ User preferences: modesty style ${ctx.modestyStyle}, coverage ${ctx.coveragePref
 Closet (each line is: id | name | category | color | formality | warmth | sleeve):
 ${ctx.closetLines.map((l) => `- ${l}`).join('\n') || '(empty closet)'}
 
-Build up to 4 complete outfits for this occasion. Each outfit should be a wearable combination — a top plus a bottom, or a dress/one-piece — plus outerwear, footwear, or accessories from the closet when they help. Reference closet items ONLY by their exact ids. CROSS-MATCH freely: these items came from different photos and were never worn together, and the best outfit often pairs a top from one photo with a bottom from another (e.g. a white kurta photographed with blue jeans may pair better with black trousers from a different photo) — when a cross-matched pairing is the win, say so in the stylingTip. When the closet is missing a key piece for a great outfit, include it in "missing" with a suggested color (respecting the palette). Consider the occasion's cultural dress conventions (e.g. festive colors for Mehndi/Sangeet/Haldi, avoid plain black/white as the main color at Indian celebrations where inauspicious, subdued colors for funerals) and the likely weather for the location and date. Hard rules regardless of preferences: no sleeveless or strapless tops/dresses, no backless items, no deep necklines, dresses/skirts knee-length or longer, no above-knee shorts. If modesty style is "hijabi": full sleeves, high necklines, ankle-or-full lengths only, and include a hijab/scarf from the closet when one exists. Call record_outfits.`
+Build up to 4 complete outfits for this occasion. Each outfit should be a wearable combination — a top plus a bottom, or a dress/one-piece — plus outerwear, footwear, or accessories from the closet when they help. Reference closet items ONLY by their exact ids. CROSS-MATCH freely: these items came from different photos and were never worn together, and the best outfit often pairs a top from one photo with a bottom from another (e.g. a white kurta photographed with blue jeans may pair better with black trousers from a different photo) — when a cross-matched pairing is the win, say so in the stylingTip. When the closet is missing a key piece for a great outfit, include it in "missing" with a suggested color (respecting the palette). Consider the occasion's cultural dress conventions (e.g. festive colors for Mehndi/Sangeet/Haldi, avoid plain black/white as the main color at Indian celebrations where inauspicious, subdued colors for funerals) and the likely weather for the location and date.
+${modestyText(ctx)}
+Call record_outfits.`
 
   const message = await anthropic.messages.create({
     model: MODEL,
@@ -478,6 +507,7 @@ export interface SuggestionContext {
   contextLabel: string // e.g. "Trip to Bali, Beach vibe, 28-32°C" or "Occasion: Wedding (guest)"
   modestyStyle: string
   coveragePreference: string
+  moreCoverage?: boolean
   sleevePreference: string
   preferredLength: string
   wardrobeFocus: string
@@ -532,7 +562,9 @@ User's saved clothing preferences:
 Current closet (${ctx.closetSummary.length} items):
 ${ctx.closetSummary.map((s) => `- ${s}`).join('\n') || '(empty)'}
 
-Suggest up to 4 NEW items (not already in the closet) that would round out this person's options for the context above. Every suggestion MUST respect these hard rules regardless of preferences: no sleeveless or strapless/spaghetti-strap tops or dresses, no backless tops or dresses, no deep/low necklines, no mini skirts or above-knee shorts/dresses — dresses and skirts knee-length or longer. If modesty style is "hijabi", go further: full sleeves, high neckline, ankle-or-full length, no shorts, and swimwear only as modest/burkini-style. Call suggest_items with the result.`
+Suggest up to 4 NEW items (not already in the closet) that would round out this person's options for the context above.
+${modestyText(ctx)}
+Call suggest_items with the result.`
 
   const message = await anthropic.messages.create({
     model: MODEL,

@@ -10,6 +10,7 @@ import { adminRouter } from './routes/admin'
 import { imagesRouter } from './routes/images'
 import { shopRouter } from './routes/shop'
 import { vibeRouter } from './routes/vibe'
+import { engagementRouter } from './routes/engagement'
 import { errorHandler } from './middleware/errorHandler'
 
 // The Express app, fully wired but not listening — imported both by
@@ -24,7 +25,9 @@ app.use(
     origin: env.corsOrigin === '*' ? '*' : env.corsOrigin.split(',').map((s) => s.trim()),
   }),
 )
-app.use(express.json({ limit: '2mb' }))
+// Closet payloads carry base64 photos; cleaned images are kept under ~1MB
+// client-side, but leave generous headroom (Vercel's own hard cap is 4.5MB).
+app.use(express.json({ limit: '4mb' }))
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
 
@@ -37,6 +40,7 @@ app.use('/admin', adminRouter)
 app.use('/images', imagesRouter)
 app.use('/shop', shopRouter)
 app.use('/vibe', vibeRouter)
+app.use('/engagement', engagementRouter)
 
 app.use((req, res) => {
   res.status(404).json({ error: `No route for ${req.method} ${req.path}` })

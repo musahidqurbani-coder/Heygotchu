@@ -88,10 +88,10 @@ export default function ClothingPreferencesPanel({ preferences, onSave, onBack }
         {/* More Coverage toggle */}
         <div className="flex items-center justify-between gap-4 rounded-2xl bg-cloud p-4">
           <div>
-            <p className="font-semibold text-ink">More Coverage</p>
+            <p className="font-semibold text-ink">Preference mode</p>
             <p className="text-xs text-ink/55">
-              Biases every recommendation toward fuller sleeves, longer hems, and pants over shorts/skirts.
-              Heygotchu never suggests sleeveless, strapless, or very short pieces either way.
+              When enabled, outfit suggestions stick to your saved preferences only — your chosen sleeve
+              lengths, hem lengths, and fits guide every pick from your closet.
             </p>
           </div>
           <button

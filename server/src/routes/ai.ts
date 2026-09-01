@@ -6,6 +6,7 @@ import { requireAuth } from '../middleware/auth'
 import { asyncHandler, ApiError } from '../middleware/errorHandler'
 import { env, isClaudeConfigured } from '../env'
 import { tagClothingPhoto, tagClothingPhotoMulti, suggestBeyondCloset, analyzeSelfieColors, suggestOutfitCombos, suggestItinerary } from '../lib/claude'
+import { normalizeOrientation } from '../lib/imageProcessing'
 import { findOccasion } from '../lib/occasions'
 import { DEFAULT_PREFERENCES_FALLBACK } from '../lib/defaultPreferences'
 
@@ -22,7 +23,10 @@ const upload = multer({
 // AI endpoints; admins are unlimited. The check runs before the (expensive)
 // Claude call; a run is only recorded after a successful one.
 
-const AI_DAILY_LIMIT = 100
+// Configurable without a code change (Vercel env AI_DAILY_LIMIT) — the knob
+// for keeping the free tier affordable now and tightening it later when a
+// Pro membership exists on the web.
+const AI_DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT ?? 100)
 
 async function aiRateLimit(req: Request, _res: Response, next: NextFunction) {
   try {
@@ -63,8 +67,8 @@ aiRouter.post(
     if (!req.file) throw new ApiError(400, 'No photo uploaded — send it as multipart form field "photo".')
     if (!req.file.mimetype.startsWith('image/')) throw new ApiError(400, 'File must be an image.')
 
-    const base64 = req.file.buffer.toString('base64')
-    const tagged = await tagClothingPhoto(base64, req.file.mimetype)
+    const normalized = await normalizeOrientation(req.file.buffer)
+    const tagged = await tagClothingPhoto(normalized.buffer.toString('base64'), normalized.mediaType)
     await recordRun(req.userId!, 'tag-photo')
     res.json({ item: tagged })
   }),
@@ -87,10 +91,10 @@ aiRouter.post(
       where: { userId: req.userId },
       select: { name: true, category: true, color: true },
     })
-    const base64 = req.file.buffer.toString('base64')
+    const normalized = await normalizeOrientation(req.file.buffer)
     const items = await tagClothingPhotoMulti(
-      base64,
-      req.file.mimetype,
+      normalized.buffer.toString('base64'),
+      normalized.mediaType,
       closet.map((i) => `${i.name} | ${i.category} | ${i.color}`),
     )
     await recordRun(req.userId!, 'tag-photo-multi')
@@ -147,6 +151,7 @@ aiRouter.post(
       contextLabel,
       modestyStyle: String(prefs.modestyStyle ?? 'no-preference'),
       coveragePreference: String(prefs.coveragePreference ?? 'modest'),
+      moreCoverage: Boolean(prefs.moreCoverage),
       sleevePreference: String(prefs.sleevePreference ?? 'three-quarter'),
       preferredLength: String(prefs.preferredLength ?? 'knee'),
       wardrobeFocus: String(prefs.wardrobeFocus ?? 'unisex'),
@@ -170,8 +175,8 @@ aiRouter.post(
     if (!req.file) throw new ApiError(400, 'No selfie uploaded — send it as multipart form field "selfie".')
     if (!req.file.mimetype.startsWith('image/')) throw new ApiError(400, 'File must be an image.')
 
-    const base64 = req.file.buffer.toString('base64')
-    const analysis = await analyzeSelfieColors(base64, req.file.mimetype)
+    const normalized = await normalizeOrientation(req.file.buffer)
+    const analysis = await analyzeSelfieColors(normalized.buffer.toString('base64'), normalized.mediaType)
     if (!analysis.ok) {
       throw new ApiError(422, "We couldn't see you clearly in that photo — try a brighter, front-facing one.")
     }
@@ -239,6 +244,7 @@ aiRouter.post(
       dateISO: body.dateISO || undefined,
       modestyStyle: String(prefs.modestyStyle ?? 'no-preference'),
       coveragePreference: String(prefs.coveragePreference ?? 'modest'),
+      moreCoverage: Boolean(prefs.moreCoverage),
       wardrobeFocus: String(prefs.wardrobeFocus ?? 'unisex'),
       colorAnalysis,
       closetLines,

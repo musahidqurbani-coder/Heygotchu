@@ -36,6 +36,7 @@ const itemSchema = z.object({
   tags: z.array(z.string()).default([]),
   coverage: coverageSchema.optional(),
   photo: z.string().optional(),
+  photoCleaned: z.boolean().default(false),
   source: z.enum(['manual', 'ai-tagged']).default('manual'),
 })
 
@@ -54,6 +55,7 @@ function serializeItem(row: {
   tags: string
   coverage: string | null
   photo: string | null
+  photoCleaned: boolean
   source: string
   createdAt: Date
 }) {
@@ -108,6 +110,31 @@ closetRouter.post(
       },
     })
     res.status(201).json({ item: serializeItem(row) })
+  }),
+)
+
+// Partial update — used by the retroactive photo clean-up (replacing an
+// existing item's photo with its background-removed cutout) and any future
+// edit-item UI. Only the provided fields change.
+closetRouter.patch(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const existing = await prisma.clothingItem.findUnique({ where: { id: req.params.id } })
+    if (!existing || existing.userId !== req.userId) throw new ApiError(404, 'Item not found.')
+
+    const data = itemSchema.partial().parse(req.body)
+    const incomingPhotoDelta = data.photo !== undefined ? data.photo.length - (existing.photo?.length ?? 0) : 0
+    if (incomingPhotoDelta > 0) await assertStorageQuota(req.userId!, incomingPhotoDelta)
+
+    const row = await prisma.clothingItem.update({
+      where: { id: req.params.id },
+      data: {
+        ...data,
+        tags: data.tags !== undefined ? JSON.stringify(data.tags) : undefined,
+        coverage: data.coverage !== undefined ? JSON.stringify(data.coverage) : undefined,
+      },
+    })
+    res.json({ item: serializeItem(row) })
   }),
 )
 

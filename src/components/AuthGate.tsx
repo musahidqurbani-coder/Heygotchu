@@ -18,8 +18,10 @@ export default function AuthGate() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
 
   const [verify, setVerify] = useState<VerifyState | null>(null)
   const [code, setCode] = useState('')
@@ -31,6 +33,7 @@ export default function AuthGate() {
   const [forgotEmail, setForgotEmail] = useState('')
   const [resetCode, setResetCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [showNewPassword, setShowNewPassword] = useState(false)
 
   function friendlyError(e: unknown): string {
     if (e instanceof ApiClientError) return e.message
@@ -244,16 +247,25 @@ export default function AuthGate() {
               />
               <div>
                 <label className="mb-1 block text-xs font-medium text-ink/60" htmlFor="new-password">New password</label>
-                <input
-                  id="new-password"
-                  type="password"
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className={inputClass}
-                />
+                <div className="relative">
+                  <input
+                    id="new-password"
+                    type={showNewPassword ? 'text' : 'password'}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className={`${inputClass} pr-14`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((s) => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-ink/50 hover:text-ink"
+                  >
+                    {showNewPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
                 <p className="mt-1 text-xs text-ink/40">At least 8 characters.</p>
               </div>
               <button
@@ -309,7 +321,24 @@ export default function AuthGate() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-ink/60" htmlFor="signup-password">Password</label>
-              <input id="signup-password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
+              <div className="relative">
+                <input
+                  id="signup-password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`${inputClass} pr-14`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-ink/50 hover:text-ink"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               <p className="mt-1 text-xs text-ink/40">At least 8 characters.</p>
             </div>
             <button type="submit" disabled={busy} className="w-full rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40">
@@ -317,7 +346,9 @@ export default function AuthGate() {
             </button>
             <p className="text-center text-[11px] text-ink/45">
               By creating an account you agree to our{' '}
-              <a href="/privacy.html" target="_blank" rel="noreferrer" className="font-medium underline hover:text-ink">Privacy Policy</a>.
+              <a href="/terms.html" target="_blank" rel="noreferrer" className="font-medium underline hover:text-ink">Terms of Use</a>
+              {' '}and{' '}
+              <a href="/privacy.html" target="_blank" rel="noreferrer" className="font-medium underline hover:text-ink">Privacy Policy</a>, and confirm any photos you upload are yours to share.
             </p>
             <p className="text-center text-xs text-ink/50">
               Already have an account?{' '}
@@ -334,7 +365,23 @@ export default function AuthGate() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-ink/60" htmlFor="login-password">Password</label>
-              <input id="login-password" type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className={inputClass} />
+              <div className="relative">
+                <input
+                  id="login-password"
+                  type={showLoginPassword ? 'text' : 'password'}
+                  required
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className={`${inputClass} pr-14`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword((s) => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-ink/50 hover:text-ink"
+                >
+                  {showLoginPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
             <button type="submit" disabled={busy} className="w-full rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40">
               {busy ? 'Logging in…' : 'Log in'}

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type { ClothingItem, ClothingPreferences, DayWeather, TripPlan } from '../types'
-import InspirationSection from './InspirationSection'
-import { buildInspirationQuery } from './InspirationRow'
+import AmazonShopBlocks from './AmazonShopBlocks'
 import OutfitDeck from './OutfitDeck'
 import { formatDateRange } from '../lib/dateUtils'
 import { fallbackImage } from '../lib/imageApi'
@@ -12,7 +11,7 @@ import Itinerary from './Itinerary'
 import PackingList from './PackingList'
 import SaveTripButton from './SaveTripButton'
 import ShareButton from './ShareButton'
-import TravelIdeas from './TravelIdeas'
+import { useTripIdeas } from '../lib/useTripIdeas'
 
 interface ResultsViewProps {
   trip: TripPlan
@@ -36,6 +35,13 @@ export default function ResultsView({ trip, closet, preferences, saved, onRegene
   const weatherDays: DayWeather[] = trip.days
     .map((d) => d.weather)
     .filter((w): w is DayWeather => w !== null)
+  const { plan: ideas, error: ideasError } = useTripIdeas(
+    trip.id,
+    trip.destination,
+    trip.days.length,
+    trip.vibes,
+    trip.startDate,
+  )
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-8">
@@ -65,6 +71,7 @@ export default function ResultsView({ trip, closet, preferences, saved, onRegene
         </div>
       </div>
 
+      {/* 1 · Color palette */}
       <section className="mt-10 text-center">
         <h2 className="font-display text-2xl font-semibold">Your Travel Palette</h2>
         <div className="mt-6">
@@ -72,9 +79,44 @@ export default function ResultsView({ trip, closet, preferences, saved, onRegene
         </div>
       </section>
 
-      <section className="mt-10 rounded-3xl bg-white p-6 text-center shadow-sm ring-1 ring-black/5 sm:p-8">
-        <h2 className="font-display text-xl font-semibold">Travel Vibe</h2>
-        <p className="mx-auto mt-2 max-w-xl text-ink/70">{trip.vibeSummary}</p>
+      {/* 2 · Shop the palette */}
+      <section className="mt-10">
+        <AmazonShopBlocks
+          preferences={preferences}
+          context={`${trip.destination} ${trip.vibes[0] ?? 'travel'}`}
+          closet={closet}
+        />
+      </section>
+
+      {/* 3 · Travel plan idea (summary) */}
+      <section className="mt-10 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5 sm:p-8">
+        <h2 className="font-display text-xl font-semibold">Travel plan idea 🗺️</h2>
+        <p className="mt-2 text-ink/70">{trip.vibeSummary}</p>
+        {ideasError ? (
+          <p className="mt-2 text-sm text-ink/50">{ideasError}</p>
+        ) : ideas === null ? (
+          <p className="mt-2 text-sm text-ink/50">✨ Planning your {trip.days.length}-day adventure…</p>
+        ) : (
+          <p className="mt-2 text-ink/70">{ideas.overview}</p>
+        )}
+      </section>
+
+      {/* 4 · Fit deck */}
+      <section className="mt-10">
+        <h2 className="mb-4 font-display text-xl font-semibold">Your fit deck 🃏</h2>
+        <OutfitDeck days={trip.days} closet={closet} preferences={preferences} onToast={onToast} />
+      </section>
+
+      {/* 5 + 6 · Day by day, each day a tap-to-expand heading */}
+      <section className="mt-10">
+        <h2 className="mb-4 font-display text-xl font-semibold">Day by day</h2>
+        <Itinerary days={trip.days} ideas={ideas?.days} />
+      </section>
+
+      {/* 7 · Packing list */}
+      <section className="mt-10 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5 sm:p-8">
+        <h2 className="mb-4 font-display text-xl font-semibold">Packing List</h2>
+        <PackingList entries={trip.packingList} gaps={trip.gaps} />
       </section>
 
       {places.length > 0 && (
@@ -100,47 +142,7 @@ export default function ResultsView({ trip, closet, preferences, saved, onRegene
         <WeatherCard days={weatherDays} source={trip.weatherSource} />
       </section>
 
-      <TravelIdeas
-        tripId={trip.id}
-        destination={trip.destination}
-        dayCount={trip.days.length}
-        vibes={trip.vibes}
-        startDate={trip.startDate}
-      />
-
-      <section className="mt-10">
-        <h2 className="mb-4 font-display text-xl font-semibold">Your fit deck 🃏</h2>
-        <OutfitDeck days={trip.days} closet={closet} preferences={preferences} onToast={onToast} />
-      </section>
-
-      <section className="mt-10">
-        <h2 className="mb-4 font-display text-xl font-semibold">Day by day</h2>
-        <Itinerary days={trip.days} />
-      </section>
-
-      <section className="mt-10 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5 sm:p-8">
-        <h2 className="mb-4 font-display text-xl font-semibold">Packing List</h2>
-        <PackingList entries={trip.packingList} gaps={trip.gaps} />
-      </section>
-
-      <section className="mt-10 space-y-3 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5 sm:p-8">
-        <h2 className="font-display text-xl font-semibold">Style inspiration 🛍️</h2>
-        {(() => {
-          const context = `${trip.destination} ${trip.vibes[0] ?? 'travel'}`
-          const top = buildInspirationQuery(preferences, context, 'top')
-          const bottom = buildInspirationQuery(preferences, context, 'bottom')
-          return (
-            <InspirationSection
-              tabs={[
-                { label: 'Tops', query: top.query, fallback: top.fallback },
-                { label: 'Bottoms', query: bottom.query, fallback: bottom.fallback },
-              ]}
-            />
-          )
-        })()}
-      </section>
-
-      <div className="sticky bottom-4 z-30 mt-10 flex flex-wrap items-center justify-center gap-3 rounded-full bg-white/90 p-3 shadow-xl ring-1 ring-black/5 backdrop-blur">
+      <div className="sticky bottom-24 z-30 mt-10 flex flex-wrap items-center justify-center gap-3 rounded-full bg-white/90 p-3 shadow-xl ring-1 ring-black/5 backdrop-blur">
         <button
           onClick={onRegenerate}
           className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-5 py-2.5 text-sm font-semibold text-ink/80 transition hover:border-black/20 hover:-translate-y-0.5 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-coral active:scale-95"

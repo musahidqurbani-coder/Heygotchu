@@ -146,7 +146,7 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
               </div>
               <h3 className="mt-3 font-display text-xl font-semibold">Pick the moment</h3>
               <p className="mt-2 text-sm leading-relaxed text-ink/60">
-                A trip with live weather, or one of 50+ occasions — Sangeet, Mehndi, Eid, Diwali, weddings,
+                A trip with live weather, or one of 50+ occasions — weddings, festive nights, parties,
                 interviews, brunch. Mix and match from your own top, bottom, and shoe options:
               </p>
               <div className="mt-4">
@@ -184,7 +184,7 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
                 'It cross-matches across everything you own: the kurta from one photo with the trousers from another.',
                 'It flags duplicates so the same shirt never gets packed twice.',
                 'Your palette comes from your selfie — colors that suit you, not anyone.',
-                'Modesty-aware: hijabi mode, sleeve, neckline and hem rules are never broken.',
+                'Your rules, if you want them: optional preference and modesty modes are honored exactly — never imposed.',
                 'It tells you what to leave at home — the painful part generic AI skips.',
               ].map((line) => (
                 <li key={line} className="flex gap-2.5 text-sm leading-relaxed text-white/85">
@@ -212,6 +212,7 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-sm text-ink/50 sm:px-8">
           <span>© {new Date().getFullYear()} Heygotchu · you choose the vibe, we gotchu ᰔ</span>
           <div className="flex gap-5">
+            <a href="/terms.html" className="font-medium hover:text-ink">Terms of Use</a>
             <a href="/privacy.html" className="font-medium hover:text-ink">Privacy Policy</a>
             <a href="mailto:musahidqurbani@gmail.com" className="font-medium hover:text-ink">Contact</a>
           </div>

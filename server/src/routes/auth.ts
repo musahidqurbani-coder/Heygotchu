@@ -15,6 +15,10 @@ export const authRouter = Router()
 const signupSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(8).max(200),
+  // "Refer & earn": the referrer's user id, carried in the invite link
+  // (?ref=...). Invalid or self-referring codes are silently ignored — a
+  // bad link should never block an account from being created.
+  referralCode: z.string().trim().max(60).optional(),
 })
 
 function publicUser(user: { id: string; email: string; verified: boolean; role: string }) {
@@ -24,7 +28,7 @@ function publicUser(user: { id: string; email: string; verified: boolean; role: 
 authRouter.post(
   '/signup',
   asyncHandler(async (req, res) => {
-    const { email, password } = signupSchema.parse(req.body)
+    const { email, password, referralCode } = signupSchema.parse(req.body)
 
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
@@ -32,7 +36,22 @@ authRouter.post(
     }
 
     const passwordHash = await hashPassword(password)
-    const user = await prisma.user.create({ data: { email, passwordHash } })
+    const referrer = referralCode ? await prisma.user.findUnique({ where: { id: referralCode } }) : null
+    const user = await prisma.user.create({
+      data: { email, passwordHash, referredById: referrer?.id ?? null },
+    })
+
+    // Refer & earn: the referrer gets 5 Daily Grind (streak) days per friend
+    // who signs up through their link.
+    if (referrer) {
+      await prisma.user.update({
+        where: { id: referrer.id },
+        data: {
+          streakCount: referrer.streakCount + 5,
+          bestStreak: Math.max(referrer.bestStreak, referrer.streakCount + 5),
+        },
+      })
+    }
 
     res.status(201).json({
       user: publicUser(user),

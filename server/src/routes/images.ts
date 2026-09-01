@@ -35,11 +35,14 @@ imagesRouter.get(
 // Clothing-inspiration examples for the occasion planner: up to 5 photos
 // matching a query like "emerald green kurta women top". Providers, in
 // preference order:
-//   1. Google Programmable Search (GOOGLE_CSE_KEY + GOOGLE_CSE_ID) — real
-//      Google Images results; each thumb links back to the page the image
-//      appears on (contextLink).
-//   2. Unsplash (UNSPLASH_ACCESS_KEY) — stock photos.
-// With neither configured this 404s and the frontend falls back to an
+//   1. Serper.dev (SERPER_API_KEY) — Google Images results via a third-party
+//      proxy that bills independently of Google Cloud (avoids the Custom
+//      Search JSON API's billing-account requirement); query is restricted
+//      to amazon.in so results are real product photos.
+//   2. Google Programmable Search (GOOGLE_CSE_KEY + GOOGLE_CSE_ID) — same
+//      idea via Google's own API, kept in case billing gets sorted out.
+//   3. Unsplash (UNSPLASH_ACCESS_KEY) — stock photos.
+// With none configured this 404s and the frontend falls back to an
 // external Google Images search link.
 const examplesSchema = z.object({
   query: z.string().trim().min(1).max(160),
@@ -53,6 +56,24 @@ interface ExampleOut {
   url?: string
   pageUrl?: string
   alt?: string
+}
+
+async function serperImageExamples(query: string, apiKey: string): Promise<ExampleOut[]> {
+  const upstream = await fetch('https://google.serper.dev/images', {
+    method: 'POST',
+    headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: `${query} site:amazon.in`, gl: 'in', num: 5 }),
+  })
+  if (!upstream.ok) throw new ApiError(502, 'Serper image search returned an error.')
+  const data = (await upstream.json()) as {
+    images?: { imageUrl?: string; thumbnailUrl?: string; link?: string; title?: string }[]
+  }
+  return (data.images ?? []).map((img) => ({
+    thumb: img.thumbnailUrl ?? img.imageUrl,
+    url: img.imageUrl,
+    pageUrl: img.link,
+    alt: img.title,
+  }))
 }
 
 async function googleImageExamples(query: string, key: string, cx: string): Promise<ExampleOut[]> {
@@ -112,6 +133,7 @@ imagesRouter.get(
   '/examples',
   asyncHandler(async (req, res) => {
     const { query, fallback } = examplesSchema.parse(req.query)
+    const serperKey = process.env.SERPER_API_KEY
     const googleKey = process.env.GOOGLE_CSE_KEY
     const googleCx = process.env.GOOGLE_CSE_ID
     const unsplashKey = process.env.UNSPLASH_ACCESS_KEY
@@ -120,7 +142,23 @@ imagesRouter.get(
     // logs its reason and the next one takes over, ending at the keyless
     // Openverse fallback so inline examples always work.
     let results: ExampleOut[] | null = null
-    if (googleKey && googleCx) {
+    if (serperKey) {
+      // A palette-and-occasion query can be too specific for Amazon's index
+      // ("Warm Teal boho women Haldi / Turmeric ceremony outfit top") —
+      // retry Serper with the simpler fallback before abandoning real
+      // product photos for the generic providers below.
+      const serperQueries = [query, ...(fallback && fallback !== query ? [fallback] : [])]
+      for (const q of serperQueries) {
+        try {
+          results = await serperImageExamples(q, serperKey)
+          if (results.length > 0) break
+        } catch (err) {
+          console.error('[images] Serper failed, falling through:', err)
+          break
+        }
+      }
+    }
+    if (!results?.length && googleKey && googleCx) {
       try {
         results = await googleImageExamples(query, googleKey, googleCx)
       } catch (err) {
