@@ -7,10 +7,10 @@ interface AuthContextValue {
   user: PublicUser | null
   token: string | null
   status: 'checking' | 'signed-out' | 'signed-in'
-  signup: (email: string, password: string) => Promise<PublicUser>
+  signup: (email: string, password: string, phoneNumber?: string) => Promise<PublicUser>
   sendOtp: (identifier: { userId?: string; email?: string }) => ReturnType<typeof authApi.sendOtp>
   verifyOtp: (userId: string, code: string) => Promise<PublicUser>
-  login: (email: string, password: string) => Promise<PublicUser>
+  login: (identifier: string, password: string) => Promise<PublicUser>
   logout: () => void
 }
 
@@ -58,14 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token])
 
-  const signup = useCallback(async (email: string, password: string) => {
+  const signup = useCallback(async (email: string, password: string, phoneNumber?: string) => {
     // Refer & earn: an invite link lands as heygotchu.com/?ref=<user id> —
     // carry that code through signup so the referrer gets their streak days.
     let referralCode: string | undefined
     try {
       referralCode = new URLSearchParams(window.location.search).get('ref') ?? undefined
     } catch { /* no window (tests) */ }
-    const res = await authApi.signup(email, password, referralCode)
+    const res = await authApi.signup(email, password, phoneNumber, referralCode)
     return res.user
   }, [])
 
@@ -80,8 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.user
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await authApi.login(email, password)
+  const login = useCallback(async (identifier: string, password: string) => {
+    const res = await authApi.login(identifier, password)
     localStorage.setItem(TOKEN_KEY, res.token)
     setToken(res.token)
     setUser(res.user)

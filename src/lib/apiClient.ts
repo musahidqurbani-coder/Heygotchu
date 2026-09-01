@@ -51,15 +51,21 @@ async function request<T>(path: string, options: RequestInit = {}, timeoutMs = 1
 export interface PublicUser {
   id: string
   email: string
+  phoneNumber: string | null
   verified: boolean
   role: 'user' | 'admin'
 }
 
 export const authApi = {
-  signup: (email: string, password: string, referralCode?: string) =>
+  signup: (email: string, password: string, phoneNumber?: string, referralCode?: string) =>
     request<{ user: PublicUser; message: string }>('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ email, password, ...(referralCode ? { referralCode } : {}) }),
+      body: JSON.stringify({
+        email,
+        password,
+        ...(phoneNumber ? { phoneNumber } : {}),
+        ...(referralCode ? { referralCode } : {}),
+      }),
     }),
   sendOtp: (identifier: { userId?: string; email?: string }) =>
     request<{ sent: boolean; userId: string; delivered: boolean; devCode?: string; expiresAt: string }>(
@@ -71,10 +77,12 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ userId, code }),
     }),
-  login: (email: string, password: string) =>
+  // `identifier` is whatever the person typed — email or phone number, in
+  // the same field. The backend decides which column to look it up against.
+  login: (identifier: string, password: string) =>
     request<{ token: string; user: PublicUser }>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     }),
   me: () => request<{ user: PublicUser }>('/auth/me'),
   forgotPassword: (email: string) =>

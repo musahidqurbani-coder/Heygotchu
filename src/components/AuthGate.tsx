@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { ApiClientError, authApi } from '../lib/apiClient'
+import { getRememberedCredential, rememberCredential } from '../lib/credentialLock'
 import logo from '../assets/logo-mark.png'
 import Landing from './Landing'
 
@@ -17,6 +18,7 @@ export default function AuthGate() {
   const [screen, setScreen] = useState<Screen>('landing')
 
   const [email, setEmail] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
@@ -27,6 +29,26 @@ export default function AuthGate() {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // The password to remember once whichever pending verification succeeds —
+  // set right before send-otp, since signup and the login "please verify"
+  // fallback both route through the same verify screen but started with
+  // different passwords.
+  const [pendingRememberPassword, setPendingRememberPassword] = useState('')
+
+  // Sign-in with fingerprint (see src/lib/credentialLock.ts): try a silent,
+  // OS-gated credential fetch as soon as the sign-in screen would show.
+  // AuthGate only renders once App has confirmed there's no valid session,
+  // so this is exactly the right moment to attempt it.
+  useEffect(() => {
+    let cancelled = false
+    getRememberedCredential().then((cred) => {
+      if (cred && !cancelled) void login(cred.id, cred.password)
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Forgot-password flow: request a code by email, then set a new password.
   const [forgot, setForgot] = useState<VerifyState | null>(null)
@@ -62,8 +84,9 @@ export default function AuthGate() {
     }
     setBusy(true)
     try {
-      const user = await signup(email.trim(), password)
+      const user = await signup(email.trim(), password, phoneNumber.trim() || undefined)
       setBusy(false)
+      setPendingRememberPassword(password)
       await beginVerification({ userId: user.id }, user.email)
     } catch (e) {
       setBusy(false)
@@ -77,6 +100,7 @@ export default function AuthGate() {
     setBusy(true)
     try {
       await login(loginEmail.trim(), loginPassword)
+      void rememberCredential(loginEmail.trim(), loginPassword)
       // On success, AuthContext flips to signed-in and App swaps this out.
     } catch (e) {
       setBusy(false)
@@ -84,6 +108,7 @@ export default function AuthGate() {
         // Account exists but isn't verified yet — offer to resend a code
         // using the email they typed, since we don't have their userId
         // from a login attempt.
+        setPendingRememberPassword(loginPassword)
         await beginVerification({ email: loginEmail.trim() }, loginEmail.trim())
         return
       }
@@ -105,6 +130,7 @@ export default function AuthGate() {
     setBusy(true)
     try {
       await verifyOtp(verify.userId, code.trim())
+      if (pendingRememberPassword) void rememberCredential(verify.email, pendingRememberPassword)
     } catch (e) {
       setError(friendlyError(e))
     } finally {
@@ -140,6 +166,7 @@ export default function AuthGate() {
       // Reset succeeded server-side; log in through the normal context flow
       // so the app state updates exactly like any other login.
       await login(forgot.email, newPassword)
+      void rememberCredential(forgot.email, newPassword)
     } catch (err) {
       setError(friendlyError(err))
     } finally {
@@ -320,6 +347,18 @@ export default function AuthGate() {
               <input id="signup-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
             </div>
             <div>
+              <label className="mb-1 block text-xs font-medium text-ink/60" htmlFor="signup-phone">Phone number (optional)</label>
+              <input
+                id="signup-phone"
+                type="tel"
+                autoComplete="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-ink/40">Lets you log in with your phone number instead of email.</p>
+            </div>
+            <div>
               <label className="mb-1 block text-xs font-medium text-ink/60" htmlFor="signup-password">Password</label>
               <div className="relative">
                 <input
@@ -360,8 +399,16 @@ export default function AuthGate() {
         ) : (
           <form onSubmit={handleLogin} className="space-y-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-ink/60" htmlFor="login-email">Email address</label>
-              <input id="login-email" type="email" required value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className={inputClass} />
+              <label className="mb-1 block text-xs font-medium text-ink/60" htmlFor="login-email">Email or phone number</label>
+              <input
+                id="login-email"
+                type="text"
+                autoComplete="username"
+                required
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-ink/60" htmlFor="login-password">Password</label>

@@ -10,35 +10,51 @@ import { requireAuth } from '../middleware/auth'
 
 export const authRouter = Router()
 
-// Email + password only — verification happens via a one-time code sent to
-// that email address.
+// Phone number is stored digits-only — it's used purely as a second login
+// identifier (no SMS/OTP is ever sent to it), so there's nothing to
+// normalize beyond stripping formatting characters for consistent lookup.
+const phoneNumberSchema = z
+  .string()
+  .trim()
+  .transform((v) => v.replace(/\D/g, ''))
+  .refine((v) => v.length >= 7 && v.length <= 15, { message: 'Enter a valid phone number.' })
+
+// Email + password only for verification — a one-time code always goes to
+// the email address, regardless of whether a phone number is also set.
 const signupSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(8).max(200),
+  phoneNumber: phoneNumberSchema.optional(),
   // "Refer & earn": the referrer's user id, carried in the invite link
   // (?ref=...). Invalid or self-referring codes are silently ignored — a
   // bad link should never block an account from being created.
   referralCode: z.string().trim().max(60).optional(),
 })
 
-function publicUser(user: { id: string; email: string; verified: boolean; role: string }) {
-  return { id: user.id, email: user.email, verified: user.verified, role: user.role }
+function publicUser(user: { id: string; email: string; phoneNumber: string | null; verified: boolean; role: string }) {
+  return { id: user.id, email: user.email, phoneNumber: user.phoneNumber, verified: user.verified, role: user.role }
 }
 
 authRouter.post(
   '/signup',
   asyncHandler(async (req, res) => {
-    const { email, password, referralCode } = signupSchema.parse(req.body)
+    const { email, password, phoneNumber, referralCode } = signupSchema.parse(req.body)
 
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
       throw new ApiError(409, 'An account with this email already exists.')
     }
+    if (phoneNumber) {
+      const existingPhone = await prisma.user.findUnique({ where: { phoneNumber } })
+      if (existingPhone) {
+        throw new ApiError(409, 'An account with this phone number already exists.')
+      }
+    }
 
     const passwordHash = await hashPassword(password)
     const referrer = referralCode ? await prisma.user.findUnique({ where: { id: referralCode } }) : null
     const user = await prisma.user.create({
-      data: { email, passwordHash, referredById: referrer?.id ?? null },
+      data: { email, phoneNumber: phoneNumber ?? null, passwordHash, referredById: referrer?.id ?? null },
     })
 
     // Refer & earn: the referrer gets 5 Daily Grind (streak) days per friend
@@ -126,20 +142,26 @@ authRouter.post(
   }),
 )
 
+// Login accepts EITHER an email or a phone number in the same field — the
+// same "identifier" pattern most apps use. Whichever it looks like decides
+// which column gets queried; either way it's a normal Prisma findUnique,
+// so this is no more exposed to injection than the email-only lookup was.
 const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
+  identifier: z.string().trim().min(1),
   password: z.string().min(1),
 })
 
 authRouter.post(
   '/login',
   asyncHandler(async (req, res) => {
-    const { email, password } = loginSchema.parse(req.body)
-    const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) throw new ApiError(401, 'Incorrect email or password.')
+    const { identifier, password } = loginSchema.parse(req.body)
+    const user = identifier.includes('@')
+      ? await prisma.user.findUnique({ where: { email: identifier.toLowerCase() } })
+      : await prisma.user.findUnique({ where: { phoneNumber: identifier.replace(/\D/g, '') } })
+    if (!user) throw new ApiError(401, 'Incorrect email/phone or password.')
 
     const valid = await verifyPassword(password, user.passwordHash)
-    if (!valid) throw new ApiError(401, 'Incorrect email or password.')
+    if (!valid) throw new ApiError(401, 'Incorrect email/phone or password.')
 
     if (!user.verified) {
       throw new ApiError(403, 'Please verify your account with the code sent to your email before logging in.')
