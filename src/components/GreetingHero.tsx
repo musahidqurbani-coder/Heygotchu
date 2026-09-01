@@ -5,7 +5,8 @@ import type { ClothingItem, ClothingPreferences } from '../types'
 import { suggestTodayOutfit } from '../lib/todaySuggestion'
 import { useLang } from '../lib/i18n'
 
-function greetName(email?: string): string {
+function greetName(name?: string | null, email?: string): string {
+  if (name?.trim()) return name.trim().split(/\s+/)[0]
   if (!email) return 'there'
   const local = email.split('@')[0]
   const match = local.match(/[a-zA-Z]+/)
@@ -55,7 +56,7 @@ export default function GreetingHero({ mode, closet, preferences }: GreetingHero
       </div>
 
       <h1 className="mt-3 font-display text-3xl font-bold leading-tight text-[#fff] sm:text-4xl">
-        {timeGreeting()}, {greetName(user?.email)}
+        {timeGreeting()}, {greetName(user?.name, user?.email)}
       </h1>
       <p className="mt-1.5 text-xs font-medium uppercase tracking-wide text-[#ffb1a5]">{dateLabel}</p>
       <p className="mt-3 max-w-md text-sm text-[#fff]/70 sm:text-base">{t('heroSub')}</p>

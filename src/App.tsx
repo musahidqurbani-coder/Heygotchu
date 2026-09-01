@@ -521,7 +521,7 @@ export default function App() {
 
       {view === 'preferences' && (
         <>
-          <AppSettings onBack={() => setView(currentTrip ? 'results' : 'landing')} />
+          <AppSettings onBack={() => setView(currentTrip ? 'results' : 'landing')} onToast={setToastMessage} />
           <ClothingPreferencesPanel
             preferences={preferences}
             onSave={handleSavePreferences}

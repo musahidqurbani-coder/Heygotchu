@@ -31,8 +31,24 @@ const signupSchema = z.object({
   referralCode: z.string().trim().max(60).optional(),
 })
 
-function publicUser(user: { id: string; email: string; phoneNumber: string | null; verified: boolean; role: string }) {
-  return { id: user.id, email: user.email, phoneNumber: user.phoneNumber, verified: user.verified, role: user.role }
+function publicUser(user: {
+  id: string
+  email: string
+  phoneNumber: string | null
+  name: string | null
+  avatarPhoto: string | null
+  verified: boolean
+  role: string
+}) {
+  return {
+    id: user.id,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    name: user.name,
+    avatarPhoto: user.avatarPhoto,
+    verified: user.verified,
+    role: user.role,
+  }
 }
 
 authRouter.post(
@@ -233,6 +249,45 @@ authRouter.get(
     const user = await prisma.user.findUnique({ where: { id: req.userId } })
     if (!user) throw new ApiError(404, 'Account not found.')
     res.json({ user: publicUser(user) })
+  }),
+)
+
+// Profile edits: name, phone number, and avatar photo — this is the only
+// place an EXISTING account can add or change a phone number, since signup
+// only asked once. An empty string on any field clears it; an omitted
+// field is left untouched.
+const updateProfileSchema = z.object({
+  name: z.string().trim().max(80).optional(),
+  phoneNumber: z.string().trim().optional(),
+  avatarPhoto: z.string().optional(),
+})
+
+authRouter.patch(
+  '/me',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const body = updateProfileSchema.parse(req.body)
+
+    let phoneNumber: string | null | undefined
+    if (body.phoneNumber !== undefined) {
+      phoneNumber = body.phoneNumber === '' ? null : phoneNumberSchema.parse(body.phoneNumber)
+      if (phoneNumber) {
+        const existing = await prisma.user.findUnique({ where: { phoneNumber } })
+        if (existing && existing.id !== req.userId) {
+          throw new ApiError(409, 'An account with this phone number already exists.')
+        }
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        ...(body.name !== undefined ? { name: body.name || null } : {}),
+        ...(phoneNumber !== undefined ? { phoneNumber } : {}),
+        ...(body.avatarPhoto !== undefined ? { avatarPhoto: body.avatarPhoto || null } : {}),
+      },
+    })
+    res.json({ user: publicUser(updated) })
   }),
 )
 

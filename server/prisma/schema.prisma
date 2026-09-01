@@ -34,6 +34,10 @@ model User {
   // Optional second identifier: acts purely as a username for login,
   // exactly like email does. No OTP/SMS is ever sent to it.
   phoneNumber  String?  @unique
+  name         String?
+  // A small square profile photo, stored as a data URL exactly like
+  // ClothingItem.photo — cropped and compressed client-side before upload.
+  avatarPhoto  String?
   passwordHash String
   // True once the user has verified their email via OTP — that's what
   // unlocks login.

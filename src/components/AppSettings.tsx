@@ -1,21 +1,58 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { LANGUAGES, useLang } from '../lib/i18n'
 import { VIBES, applyVibe, currentVibe } from '../lib/vibes'
 import { useAuth } from '../context/AuthContext'
+import { cropAvatarToSquare } from '../lib/avatarCrop'
+import { ApiClientError } from '../lib/apiClient'
 
 interface AppSettingsProps {
   onBack?: () => void
+  onToast?: (message: string) => void
 }
 
-// App-level settings: language, "My Vibe" (the selectable UI look), and the
-// refer-&-earn link. Lives on the Preferences screen above the clothing
-// preferences — which is why the back button lives up here, at the top of
-// the page.
-export default function AppSettings({ onBack }: AppSettingsProps) {
+// App-level settings: profile (name/phone/photo), language, "My Vibe" (the
+// selectable UI look), and the refer-&-earn link. Lives on the Preferences
+// screen above the clothing preferences — which is why the back button
+// lives up here, at the top of the page.
+export default function AppSettings({ onBack, onToast }: AppSettingsProps) {
   const { lang, setLang } = useLang()
-  const { user } = useAuth()
+  const { user, updateProfile } = useAuth()
   const [vibe, setVibe] = useState(currentVibe)
   const [copied, setCopied] = useState(false)
+
+  const [name, setName] = useState(user?.name ?? '')
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? '')
+  const [avatarPhoto, setAvatarPhoto] = useState(user?.avatarPhoto ?? '')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function handlePickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setAvatarBusy(true)
+    try {
+      const cropped = await cropAvatarToSquare(file)
+      setAvatarPhoto(cropped)
+    } catch {
+      onToast?.("Couldn't read that photo — try a different one.")
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
+  async function handleSaveProfile() {
+    setSavingProfile(true)
+    try {
+      await updateProfile({ name: name.trim(), phoneNumber: phoneNumber.trim(), avatarPhoto })
+      onToast?.('Profile saved ✓')
+    } catch (e) {
+      onToast?.(e instanceof ApiClientError ? e.message : 'Could not save your profile — please try again.')
+    } finally {
+      setSavingProfile(false)
+    }
+  }
 
   function pickVibe(id: string) {
     applyVibe(id)
@@ -50,6 +87,63 @@ export default function AppSettings({ onBack }: AppSettingsProps) {
           ← Back
         </button>
       )}
+      {/* Profile */}
+      <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+        <h3 className="font-display text-lg font-semibold">Profile 👤</h3>
+        <div className="mt-3 flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={avatarBusy}
+            aria-label="Change profile photo"
+            className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-cloud ring-1 ring-black/10 disabled:opacity-60"
+          >
+            {avatarPhoto ? (
+              <img src={avatarPhoto} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="grid h-full w-full place-items-center text-xl font-bold text-ink/40">
+                {(name || user?.email || '?').charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span className="absolute inset-x-0 bottom-0 bg-ink/70 py-0.5 text-center text-[9px] font-semibold text-[#fff]">
+              {avatarBusy ? '…' : 'Edit'}
+            </span>
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => void handlePickPhoto(e)} />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ink/50" htmlFor="profile-name">Name</label>
+              <input
+                id="profile-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+                className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-coral"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ink/50" htmlFor="profile-phone">Phone number</label>
+              <input
+                id="profile-phone"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="Add a phone number"
+                className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-coral"
+              />
+            </div>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-ink/40">{user?.email} · adding a phone number lets you log in with it instead.</p>
+        <button
+          onClick={() => void handleSaveProfile()}
+          disabled={savingProfile}
+          className="mt-3 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+        >
+          {savingProfile ? 'Saving…' : 'Save profile'}
+        </button>
+      </div>
+
       {/* Language */}
       <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
         <h3 className="font-display text-lg font-semibold">Language 🌐</h3>

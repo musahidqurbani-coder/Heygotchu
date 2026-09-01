@@ -11,6 +11,7 @@ interface AuthContextValue {
   sendOtp: (identifier: { userId?: string; email?: string }) => ReturnType<typeof authApi.sendOtp>
   verifyOtp: (userId: string, code: string) => Promise<PublicUser>
   login: (identifier: string, password: string) => Promise<PublicUser>
+  updateProfile: (data: { name?: string; phoneNumber?: string; avatarPhoto?: string }) => Promise<PublicUser>
   logout: () => void
 }
 
@@ -89,6 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.user
   }, [])
 
+  const updateProfile = useCallback(async (data: { name?: string; phoneNumber?: string; avatarPhoto?: string }) => {
+    const res = await authApi.updateProfile(data)
+    setUser(res.user)
+    return res.user
+  }, [])
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY)
     setToken(null)
@@ -97,8 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ user, token, status, signup, sendOtp, verifyOtp, login, logout }),
-    [user, token, status, signup, sendOtp, verifyOtp, login, logout],
+    () => ({ user, token, status, signup, sendOtp, verifyOtp, login, updateProfile, logout }),
+    [user, token, status, signup, sendOtp, verifyOtp, login, updateProfile, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

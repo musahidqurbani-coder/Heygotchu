@@ -52,6 +52,8 @@ export interface PublicUser {
   id: string
   email: string
   phoneNumber: string | null
+  name: string | null
+  avatarPhoto: string | null
   verified: boolean
   role: 'user' | 'admin'
 }
@@ -85,6 +87,8 @@ export const authApi = {
       body: JSON.stringify({ identifier, password }),
     }),
   me: () => request<{ user: PublicUser }>('/auth/me'),
+  updateProfile: (data: { name?: string; phoneNumber?: string; avatarPhoto?: string }) =>
+    request<{ user: PublicUser }>('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
   forgotPassword: (email: string) =>
     request<{ sent: boolean; userId: string; delivered: boolean; devCode?: string; expiresAt: string }>(
       '/auth/forgot-password',
