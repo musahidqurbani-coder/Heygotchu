@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react'
 import logo from '../assets/logo-mark.png'
 import { isRunningAsTwa } from '../lib/platform'
-import kimono from '../assets/landing/real-kimono.jpg'
-import hijabiDuo from '../assets/landing/real-hijabi-duo.jpg'
-import palmDress from '../assets/landing/real-palm-dress.jpg'
-import palmPants from '../assets/landing/real-palm-pants.jpg'
-import pinkTopPants from '../assets/landing/real-pink-top-pants.jpg'
-import sandalsFlowers from '../assets/landing/real-sandals-flowers.png'
-import sandalsNewBalance from '../assets/landing/real-sandals-newbalance.png'
-import packedFlatlay from '../assets/landing/real-packed-flatlay.png'
+import dressRed from '../assets/landing/default-dress-red.jpg'
+import earringsGold from '../assets/landing/default-earrings-gold.jpg'
+import dressBoho from '../assets/landing/default-dress-boho.webp'
+import necklace from '../assets/landing/default-necklace.jpg'
+import skirtTeal from '../assets/landing/default-skirt-teal.jpg'
+import heelsRed from '../assets/landing/default-heels-red.jpg'
+import heelsMaroon from '../assets/landing/default-heels-maroon.webp'
+import skirtBlack from '../assets/landing/default-skirt-black.jpg'
 
 interface Step {
   eyebrow: string
@@ -26,29 +26,29 @@ const STEPS: Step[] = [
     title: 'Pack less.',
     titleEm: 'Wear more.',
     sub: 'From clothes you already own.',
-    big: kimono,
-    small: sandalsFlowers,
+    big: dressRed,
+    small: earringsGold,
   },
   {
     eyebrow: 'Step one',
     title: 'Snap it.',
     sub: 'AI tags every piece.',
-    big: palmDress,
-    small: palmPants,
+    big: dressBoho,
+    small: necklace,
   },
   {
     eyebrow: 'Step two',
     title: 'Mix it.',
     sub: 'Top, bottom, shoes.',
-    big: pinkTopPants,
-    small: sandalsNewBalance,
+    big: skirtTeal,
+    small: heelsRed,
   },
   {
     eyebrow: 'Step three',
     title: 'Pack it.',
     sub: '9 outfits, 1 bag.',
-    big: hijabiDuo,
-    small: packedFlatlay,
+    big: heelsMaroon,
+    small: skirtBlack,
     tick: true,
   },
 ]
@@ -140,11 +140,11 @@ export default function PreLoginCarousel({ onSignup, onLogin }: PreLoginCarousel
                 <p className="mt-2.5 text-sm font-semibold text-[#fff]/70">{step.sub}</p>
               </div>
               <div className="relative mt-auto h-[190px] w-[210px]">
-                <div className="absolute left-1.5 top-3.5 h-[150px] w-[150px] -rotate-3 overflow-hidden rounded-2xl bg-[#f2ead9] shadow-[0_16px_34px_rgba(0,0,0,.35)]">
-                  <img src={step.big} alt="" className="h-full w-full object-cover" />
+                <div className="absolute left-1.5 top-3.5 h-[150px] w-[150px] -rotate-3 overflow-hidden rounded-2xl bg-[#f2ead9] p-3 shadow-[0_16px_34px_rgba(0,0,0,.35)]">
+                  <img src={step.big} alt="" className="h-full w-full object-contain" />
                 </div>
-                <div className="absolute left-[82px] top-0 h-24 w-24 rotate-6 overflow-hidden rounded-2xl bg-[#f2ead9] shadow-[0_16px_34px_rgba(0,0,0,.35)]">
-                  <img src={step.small} alt="" className="h-full w-full object-cover" />
+                <div className="absolute left-[82px] top-0 h-24 w-24 rotate-6 overflow-hidden rounded-2xl bg-[#f2ead9] p-2 shadow-[0_16px_34px_rgba(0,0,0,.35)]">
+                  <img src={step.small} alt="" className="h-full w-full object-contain" />
                   {step.tick && (
                     <span className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-mint text-xs text-[#fff] shadow-[0_6px_14px_rgba(79,209,165,.5)]">
                       ✓

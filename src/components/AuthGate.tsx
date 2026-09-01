@@ -37,10 +37,13 @@ export default function AuthGate() {
   const [pendingRememberPassword, setPendingRememberPassword] = useState('')
 
   // Sign-in with fingerprint (see src/lib/credentialLock.ts): try a silent,
-  // OS-gated credential fetch as soon as the sign-in screen would show.
-  // AuthGate only renders once App has confirmed there's no valid session,
-  // so this is exactly the right moment to attempt it.
+  // OS-gated credential fetch — but only once the person has actually tapped
+  // "Log in" / "I already have an account". Firing this on mount meant every
+  // app open silently queried the browser's saved-password store before the
+  // person had done anything at all; waiting for the login screen keeps it
+  // to an explicit gesture instead.
   useEffect(() => {
+    if (screen !== 'login') return
     let cancelled = false
     getRememberedCredential().then((cred) => {
       if (cred && !cancelled) void login(cred.id, cred.password)
@@ -49,7 +52,7 @@ export default function AuthGate() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [screen])
 
   // Forgot-password flow: request a code by email, then set a new password.
   const [forgot, setForgot] = useState<VerifyState | null>(null)
