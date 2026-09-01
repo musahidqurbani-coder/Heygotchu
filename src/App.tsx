@@ -19,7 +19,7 @@ import AuthGate from './components/AuthGate'
 import AdminPanel from './components/AdminPanel'
 import OccasionPlanner from './components/OccasionPlanner'
 import TodayMode from './components/TodayMode'
-import StreakChip from './components/StreakChip'
+import GreetingHero from './components/GreetingHero'
 import SaveTheDate from './components/SaveTheDate'
 import AppSettings from './components/AppSettings'
 import BottomNav from './components/BottomNav'
@@ -420,19 +420,8 @@ export default function App() {
 
       {view === 'landing' && (
         <main className="mx-auto max-w-6xl px-4 pb-24 pt-10 sm:px-8 sm:pt-16">
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <span className="inline-block rounded-full bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-coral shadow-sm ring-1 ring-black/5">
-                {t('packFromOwn')}
-              </span>
-              <StreakChip />
-            </div>
-            <h1 className="mt-5 font-display text-4xl font-bold leading-tight sm:text-6xl">
-              {t('heroTitle')}
-            </h1>
-            <p className="mx-auto mt-4 max-w-md text-base text-ink/60 sm:text-lg">
-              {t('heroSub')}
-            </p>
+          <div className="mx-auto max-w-3xl">
+            <GreetingHero mode={planMode} closet={closet} preferences={preferences} />
           </div>
 
           {error && (

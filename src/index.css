@@ -14,6 +14,14 @@
   --color-grape: #8a5cf6;
 }
 
+:root {
+  /* The dashboard hero card's background — explicit per vibe (rather than
+     derived from --color-ink/--color-cloud) because those two tokens swap
+     which one is "the dark one" between light and dark vibes, which would
+     silently invert the hero's contrast if reused here. */
+  --hero-gradient: linear-gradient(150deg, #241b36 0%, #3d2246 55%, #7a3b52 100%);
+}
+
 /* --- My Vibe: user-selectable looks -----------------------------------------
    Tailwind v4 utilities read these variables at runtime, so redefining them
    per [data-vibe] reskins every component — including bg-white/ring-black
@@ -29,6 +37,7 @@ html[data-vibe='noir'] {
   --color-tangerine: #d8b46a;
   --color-sun: #d8b46a;
   --color-sky: #9db8ea;
+  --hero-gradient: linear-gradient(150deg, #0d0c10 0%, #221d14 55%, #4a3a12 100%);
 }
 
 html[data-vibe='soleil'] {
@@ -38,6 +47,7 @@ html[data-vibe='soleil'] {
   --color-tangerine: #d9a441;
   --color-sun: #f2c94c;
   --color-sky: #b4592f;
+  --hero-gradient: linear-gradient(150deg, #3d1f12 0%, #7a3a1f 55%, #cc6c4a 100%);
 }
 
 html[data-vibe='orchid'] {
@@ -47,6 +57,7 @@ html[data-vibe='orchid'] {
   --color-tangerine: #d67bb0;
   --color-sun: #f0a63a;
   --color-sky: #8e6fe0;
+  --hero-gradient: linear-gradient(150deg, #2a1f42 0%, #5a3f82 55%, #8e6fe0 100%);
 }
 
 html[data-vibe='jungalow'] {
@@ -57,6 +68,7 @@ html[data-vibe='jungalow'] {
   --color-sun: #d9b25f;
   --color-mint: #5d7d4b;
   --color-sky: #4c6a3c;
+  --hero-gradient: linear-gradient(150deg, #16241a 0%, #2f4a2c 55%, #5d7d4b 100%);
 }
 
 html[data-vibe='riviera'] {
@@ -66,6 +78,7 @@ html[data-vibe='riviera'] {
   --color-tangerine: #b98a2e;
   --color-sun: #f2c94c;
   --color-sky: #2456c9;
+  --hero-gradient: linear-gradient(150deg, #0d1526 0%, #17203a 55%, #2456c9 100%);
 }
 
 html[data-vibe='aurora'] {
@@ -78,6 +91,7 @@ html[data-vibe='aurora'] {
   --color-sun: #38d6c2;
   --color-mint: #38d6c2;
   --color-sky: #9db8ea;
+  --hero-gradient: linear-gradient(150deg, #0e1026 0%, #2d2360 55%, #7c5cff 100%);
 }
 
 html[data-vibe='wardrobe'] {
@@ -89,6 +103,7 @@ html[data-vibe='wardrobe'] {
   --color-sun: #d9b25f;
   --color-sky: #6d4a2e;
   --color-mint: #7a8a5a;
+  --hero-gradient: linear-gradient(150deg, #241a10 0%, #4a341f 55%, #6d4a2e 100%);
 }
 
 html[data-vibe='scrapbook'] {
@@ -99,6 +114,7 @@ html[data-vibe='scrapbook'] {
   --color-sun: #ffde59;
   --color-mint: #9be8c5;
   --color-sky: #7cc5ff;
+  --hero-gradient: linear-gradient(150deg, #151018 0%, #3a2a52 55%, #8e6fe0 100%);
 }
 html[data-vibe='scrapbook'] body {
   background-image: radial-gradient(#dcd0f0 1.3px, transparent 1.3px);
@@ -112,6 +128,7 @@ html[data-vibe='bento'] {
   --color-tangerine: #f0a63a;
   --color-mint: #74dfa2;
   --color-sky: #7cc5ff;
+  --hero-gradient: linear-gradient(150deg, #0f2521 0%, #134a3f 55%, #23a094 100%);
 }
 
 html[data-vibe='porcelain'] {
@@ -122,6 +139,15 @@ html[data-vibe='porcelain'] {
   --color-tangerine: #4a6fdc;
   --color-sun: #f2c94c;
   --color-sky: #4a6fdc;
+  --hero-gradient: linear-gradient(150deg, #1c2430 0%, #2f3d52 55%, #4a6fdc 100%);
+}
+
+/* Dashboard hero card — see GreetingHero.tsx. Background comes from the
+   per-vibe --hero-gradient token above; the glow shadow is tinted from
+   --color-coral, which is always the vivid accent regardless of vibe. */
+.hero-glow {
+  background: var(--hero-gradient);
+  box-shadow: 0 22px 48px -14px color-mix(in srgb, var(--color-coral) 55%, transparent);
 }
 
 /* --- Structural vibe layers -------------------------------------------------
