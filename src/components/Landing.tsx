@@ -2,6 +2,7 @@ import logo from '../assets/logo-mark.png'
 import ClosetGridPreview from './ClosetGridPreview'
 import OutfitMixShuffle from './OutfitMixShuffle'
 import PackedBagPreview from './PackedBagPreview'
+import { isRunningAsTwa } from '../lib/platform'
 
 import mixTop1 from '../assets/landing/mix-top-1.jpg'
 import mixTop2 from '../assets/landing/mix-top-2.jpg'
@@ -65,59 +66,66 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
         </nav>
       </header>
 
-      {/* hero */}
-      <main className="mx-auto max-w-6xl px-5 sm:px-8">
-        <section className="pb-12 pt-14 text-center sm:pt-20">
-          <h1 className="mx-auto max-w-3xl font-display text-5xl font-bold leading-[0.95] tracking-tight sm:text-7xl">
-            Pack less.<br />Wear more.
-          </h1>
-          <p className="mx-auto mt-5 max-w-xl text-base text-ink/65 sm:text-lg">
-            Tell Heygotchu where you're going — or what the occasion is — and show it what you own.
-            It builds the exact outfits and writes the packing list.
-            From <strong>your</strong> closet. Nothing to buy.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <button onClick={onSignup} className="rounded-full bg-coral px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-coral/30 transition hover:opacity-90">
-              Build my first outfit plan →
-            </button>
-            <button onClick={() => scrollTo('how')} className="rounded-full bg-white px-7 py-3.5 text-base font-semibold text-ink/70 ring-1 ring-black/10 transition hover:bg-cloud">
-              See how it works
-            </button>
-          </div>
+      {/* hero — full-bleed dark gradient, matching the Home dashboard hero and
+          the originally-approved Motion Demo pre-login look, instead of the
+          plain white-page hero this used to be. */}
+      <section className="hero-glow px-5 pb-16 pt-14 text-center text-[#fff] sm:px-8 sm:pt-20">
+        <span className="hero-badge inline-block rounded-full bg-[#fff]/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#fff]/90">
+          Pack from what you already own
+        </span>
+        <h1 className="mx-auto mt-5 max-w-3xl font-display text-5xl font-bold leading-[0.95] tracking-tight sm:text-7xl">
+          Pack less.<br />Wear more.
+        </h1>
+        <p className="mx-auto mt-5 max-w-xl text-base text-[#fff]/70 sm:text-lg">
+          Tell Heygotchu where you're going — or what the occasion is — and show it what you own.
+          It builds the exact outfits and writes the packing list.
+          From <strong className="text-[#fff]">your</strong> closet. Nothing to buy.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <button onClick={onSignup} className="rounded-full bg-coral px-7 py-3.5 text-base font-bold text-[#fff] shadow-lg shadow-coral/30 transition hover:opacity-90">
+            Build my first outfit plan →
+          </button>
+          <button onClick={() => scrollTo('how')} className="rounded-full bg-[#fff]/15 px-7 py-3.5 text-base font-semibold text-[#fff] ring-1 ring-[#fff]/30 backdrop-blur transition hover:bg-[#fff]/25">
+            See how it works
+          </button>
+        </div>
+      </section>
 
-          {/* the concrete example — show the product, not promises */}
-          <div className="mx-auto mt-14 max-w-3xl rounded-[2rem] bg-white p-6 text-left shadow-xl ring-1 ring-black/5 sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">A real result looks like this</p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-ink px-3.5 py-1.5 text-sm font-semibold text-white">3 days in Bali</span>
-              <span className="rounded-full bg-cloud px-3.5 py-1.5 text-sm font-medium text-ink/70 ring-1 ring-black/10">31° · humid</span>
-              <span className="rounded-full bg-cloud px-3.5 py-1.5 text-sm font-medium text-ink/70 ring-1 ring-black/10">carry-on only</span>
-            </div>
-            <p className="mt-4 font-display text-2xl font-bold sm:text-3xl">
-              8 items <span className="text-ink/30">→</span> 9 outfits <span className="text-ink/30">→</span> 1 packing list
-            </p>
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {[
-                { title: 'Beach day', colors: ['#f2b8a0', '#4d8dff', '#e8dcc7'] },
-                { title: 'Temple visit', colors: ['#faf3ec', '#8a5cf6', '#8a5a52'] },
-                { title: 'Dinner out', colors: ['#191423', '#4fd1a5', '#e8b98f'] },
-              ].map((fit) => (
-                <div key={fit.title} className="rounded-2xl bg-cloud p-3 ring-1 ring-black/5">
-                  <div className="flex gap-1.5">
-                    {fit.colors.map((c) => (
-                      <span key={c} className="h-10 flex-1 rounded-lg ring-1 ring-black/10" style={{ backgroundColor: c }} />
-                    ))}
-                  </div>
-                  <p className="mt-2 text-xs font-semibold text-ink/70">{fit.title}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-ink/40">from your closet</p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-4 rounded-xl bg-sun/20 px-3.5 py-2.5 text-sm text-ink/70">
-              💡 And it tells you what to <strong>leave at home</strong> — every piece must earn its place across multiple outfits.
-            </p>
+      {/* the concrete example — show the product, not promises. Pulled up to
+          overlap the hero's bottom edge (the "image block slightly on
+          another image block" motif carried into a content card). */}
+      <main className="mx-auto max-w-6xl px-5 sm:px-8">
+        <div className="relative z-10 mx-auto -mt-10 max-w-3xl rounded-[2rem] bg-white p-6 text-left shadow-xl ring-1 ring-black/5 sm:-mt-12 sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">A real result looks like this</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-ink px-3.5 py-1.5 text-sm font-semibold text-white">3 days in Bali</span>
+            <span className="rounded-full bg-cloud px-3.5 py-1.5 text-sm font-medium text-ink/70 ring-1 ring-black/10">31° · humid</span>
+            <span className="rounded-full bg-cloud px-3.5 py-1.5 text-sm font-medium text-ink/70 ring-1 ring-black/10">carry-on only</span>
           </div>
-        </section>
+          <p className="mt-4 font-display text-2xl font-bold sm:text-3xl">
+            8 items <span className="text-ink/30">→</span> 9 outfits <span className="text-ink/30">→</span> 1 packing list
+          </p>
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {[
+              { title: 'Beach day', colors: ['#f2b8a0', '#4d8dff', '#e8dcc7'] },
+              { title: 'Temple visit', colors: ['#faf3ec', '#8a5cf6', '#8a5a52'] },
+              { title: 'Dinner out', colors: ['#191423', '#4fd1a5', '#e8b98f'] },
+            ].map((fit) => (
+              <div key={fit.title} className="rounded-2xl bg-cloud p-3 ring-1 ring-black/5">
+                <div className="flex gap-1.5">
+                  {fit.colors.map((c) => (
+                    <span key={c} className="h-10 flex-1 rounded-lg ring-1 ring-black/10" style={{ backgroundColor: c }} />
+                  ))}
+                </div>
+                <p className="mt-2 text-xs font-semibold text-ink/70">{fit.title}</p>
+                <p className="text-[10px] uppercase tracking-wider text-ink/40">from your closet</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 rounded-xl bg-sun/20 px-3.5 py-2.5 text-sm text-ink/70">
+            💡 And it tells you what to <strong>leave at home</strong> — every piece must earn its place across multiple outfits.
+          </p>
+        </div>
 
         {/* how it works */}
         <section id="how" className="py-14">
@@ -171,30 +179,35 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
           </div>
         </section>
 
-        {/* why not chatgpt */}
-        <section className="py-10">
-          <div className="rounded-[2rem] bg-ink p-7 text-white sm:p-10">
-            <h2 className="font-display text-3xl font-bold sm:text-4xl">
-              "Why not just ask ChatGPT?"
-            </h2>
-            <p className="mt-2 text-white/60">Because generic advice doesn't know your closet. Heygotchu does.</p>
-            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-              {[
-                'It remembers your actual wardrobe — every piece, photographed and cropped.',
-                'It cross-matches across everything you own: the kurta from one photo with the trousers from another.',
-                'It flags duplicates so the same shirt never gets packed twice.',
-                'Your palette comes from your selfie — colors that suit you, not anyone.',
-                'Your rules, if you want them: optional preference and modesty modes are honored exactly — never imposed.',
-                'It tells you what to leave at home — the painful part generic AI skips.',
-              ].map((line) => (
-                <li key={line} className="flex gap-2.5 text-sm leading-relaxed text-white/85">
-                  <span className="text-mint" aria-hidden="true">✓</span>
-                  {line}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        {/* why not chatgpt — web only. The wrapped Android app hides this:
+            Play Store review guidelines are touchy about anything that reads
+            as comparing/disparaging another app, so this stays on the open
+            web where that framing is normal marketing copy. */}
+        {!isRunningAsTwa() && (
+          <section className="py-10">
+            <div className="rounded-[2rem] bg-ink p-7 text-white sm:p-10">
+              <h2 className="font-display text-3xl font-bold sm:text-4xl">
+                "Why not just ask ChatGPT?"
+              </h2>
+              <p className="mt-2 text-white/60">Because generic advice doesn't know your closet. Heygotchu does.</p>
+              <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+                {[
+                  'It remembers your actual wardrobe — every piece, photographed and cropped.',
+                  'It cross-matches across everything you own: the kurta from one photo with the trousers from another.',
+                  'It flags duplicates so the same shirt never gets packed twice.',
+                  'Your palette comes from your selfie — colors that suit you, not anyone.',
+                  'Your rules, if you want them: optional preference and modesty modes are honored exactly — never imposed.',
+                  'It tells you what to leave at home — the painful part generic AI skips.',
+                ].map((line) => (
+                  <li key={line} className="flex gap-2.5 text-sm leading-relaxed text-white/85">
+                    <span className="text-mint" aria-hidden="true">✓</span>
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        )}
 
         {/* closing cta */}
         <section className="py-14 text-center">
