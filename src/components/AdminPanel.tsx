@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import PhotoLightbox from './PhotoLightbox'
 import { adminApi, ApiClientError, type AdminUserSummary, type AdminUserDetail } from '../lib/apiClient'
 
 interface AdminPanelProps {
@@ -8,15 +7,18 @@ interface AdminPanelProps {
 }
 
 // Family admin dashboard — lists every account with usage counts, lets the
-// admin open any account to see its closet and saved plans, and remove
-// non-admin accounts. Only rendered for role === 'admin' users, and the
-// backend re-checks the role on every /admin request regardless.
+// admin open any account to see its closet metadata and saved plans, and
+// remove non-admin accounts. Only rendered for role === 'admin' users, and
+// the backend re-checks the role on every /admin request regardless.
+//
+// Photos are never part of this surface: the API never returns them to an
+// admin caller, by design — a member's photos are visible to that member
+// alone, admin included.
 export default function AdminPanel({ onBack, onToast }: AdminPanelProps) {
   const [users, setUsers] = useState<AdminUserSummary[] | null>(null)
   const [selected, setSelected] = useState<AdminUserDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
-  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
 
   function friendlyError(e: unknown): string {
     return e instanceof ApiClientError ? e.message : 'Something went wrong. Please try again.'
@@ -96,23 +98,14 @@ export default function AdminPanel({ onBack, onToast }: AdminPanelProps) {
           </div>
 
           <h2 className="mt-8 text-sm font-semibold uppercase tracking-widest text-ink/40">Closet · {selected.closet.length} items</h2>
+          <p className="mt-1 text-xs text-ink/40">🔒 Photos are private to the member — admin sees names and tags only.</p>
           {selected.closet.length === 0 ? (
             <p className="mt-2 text-sm text-ink/50">No clothing items yet.</p>
           ) : (
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {selected.closet.map((item) => (
                 <div key={item.id} className="rounded-2xl bg-cloud p-3 ring-1 ring-black/5">
-                  {item.photo ? (
-                    <button
-                      type="button"
-                      onClick={() => setLightbox({ src: item.photo!, alt: item.name })}
-                      className="mb-2 block w-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
-                    >
-                      <img src={item.photo} alt={item.name} className="h-24 w-full rounded-xl object-cover" />
-                    </button>
-                  ) : (
-                    <div className="mb-2 grid h-24 w-full place-items-center rounded-xl bg-black/5 text-xs text-ink/40">no photo</div>
-                  )}
+                  <div className="mb-2 grid h-24 w-full place-items-center rounded-xl bg-black/5 text-xs text-ink/40">🔒 private</div>
                   <p className="truncate text-sm font-medium">{item.name}</p>
                   <p className="text-xs text-ink/50">{item.category} · {item.color}</p>
                 </div>
@@ -134,7 +127,6 @@ export default function AdminPanel({ onBack, onToast }: AdminPanelProps) {
             </ul>
           )}
         </div>
-        {lightbox && <PhotoLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
       </main>
     )
   }

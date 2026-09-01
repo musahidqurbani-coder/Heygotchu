@@ -74,12 +74,14 @@ adminRouter.get(
         verified: user.verified,
         role: user.role,
         createdAt: user.createdAt,
+        // Privacy: closet PHOTOS are never exposed through admin routes — a
+        // member's photos are visible to that member alone. Admin sees
+        // metadata only (names, categories, counts).
         closet: user.closetItems.map((item) => ({
           id: item.id,
           name: item.name,
           category: item.category,
           color: item.color,
-          photo: item.photo ?? undefined,
           source: item.source,
           createdAt: item.createdAt,
         })),

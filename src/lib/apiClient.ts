@@ -56,10 +56,10 @@ export interface PublicUser {
 }
 
 export const authApi = {
-  signup: (email: string, password: string) =>
+  signup: (email: string, password: string, referralCode?: string) =>
     request<{ user: PublicUser; message: string }>('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, ...(referralCode ? { referralCode } : {}) }),
     }),
   sendOtp: (identifier: { userId?: string; email?: string }) =>
     request<{ sent: boolean; userId: string; delivered: boolean; devCode?: string; expiresAt: string }>(
@@ -99,6 +99,10 @@ export const closetApi = {
   create: (item: Omit<ClothingItem, 'id' | 'createdAt'>) =>
     request<{ item: ClothingItem }>('/closet', { method: 'POST', body: JSON.stringify(item) }).then((r) => r.item),
   remove: (id: string) => request<void>(`/closet/${id}`, { method: 'DELETE' }),
+  update: (id: string, patch: Partial<Omit<ClothingItem, 'id' | 'createdAt'>>) =>
+    request<{ item: ClothingItem }>(`/closet/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }, 30_000).then(
+      (r) => r.item,
+    ),
 }
 
 // --- Preferences -----------------------------------------------------------
@@ -161,6 +165,38 @@ export const imagesApi = {
     ).then((r) => r.examples),
 }
 
+// --- Engagement: streak + save the date --------------------------------------
+
+export interface StreakInfo {
+  streak: number
+  bestStreak: number
+  tier: 'silver' | 'gold' | 'platinum' | 'diamond'
+  photoLimit: number
+  perk?: string
+  nextTier?: { name: string; atDays: number; daysToGo: number }
+}
+
+export interface SavedDateInfo {
+  id: string
+  title: string
+  kind: 'occasion' | 'trip'
+  date: string // YYYY-MM-DD
+  reminders: number[]
+  eventPlanId?: string
+  daysToGo: number
+  remindToday: boolean
+  createdAt: number
+}
+
+export const engagementApi = {
+  // Also counts today toward the login streak — call once on app load.
+  streak: () => request<StreakInfo>('/engagement/streak'),
+  listDates: () => request<{ dates: SavedDateInfo[] }>('/engagement/dates').then((r) => r.dates),
+  addDate: (payload: { title: string; kind: 'occasion' | 'trip'; date: string; reminders?: number[]; eventPlanId?: string }) =>
+    request<{ date: SavedDateInfo }>('/engagement/dates', { method: 'POST', body: JSON.stringify(payload) }).then((r) => r.date),
+  removeDate: (id: string) => request<void>(`/engagement/dates/${id}`, { method: 'DELETE' }),
+}
+
 // --- Admin (family management) ----------------------------------------------
 
 export interface AdminUserSummary {
@@ -180,7 +216,8 @@ export interface AdminUserDetail {
   verified: boolean
   role: 'user' | 'admin'
   createdAt: string
-  closet: { id: string; name: string; category: string; color: string; photo?: string; source: string; createdAt: string }[]
+  // No `photo` field — admin never receives closet photos, full stop.
+  closet: { id: string; name: string; category: string; color: string; source: string; createdAt: string }[]
   preferences: Record<string, unknown> | null
   plans: { id: string; mode: string; title: string; createdAt: string }[]
 }
