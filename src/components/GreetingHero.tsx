@@ -48,7 +48,7 @@ export default function GreetingHero({ mode, closet, preferences }: GreetingHero
   return (
     <div className="hero-glow relative overflow-hidden rounded-3xl px-5 py-6 text-[#fff] shadow-lg sm:px-8 sm:py-8">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-[#fff]/15 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#fff]/90">
+        <span className="hero-badge rounded-full bg-[#fff]/15 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#fff]/90">
           {t('packFromOwn')}
         </span>
         <StreakChip />

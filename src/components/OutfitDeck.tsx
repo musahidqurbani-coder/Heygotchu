@@ -119,7 +119,7 @@ export default function OutfitDeck({ days, closet, preferences, onToast }: Outfi
               <img src={item.photo} alt={item.name} className="h-36 w-36 rounded-2xl object-cover ring-1 ring-black/10 sm:h-44 sm:w-44" />
             ) : (
               <span
-                className="flex h-36 w-36 items-end justify-center rounded-2xl pb-2 text-xs font-semibold text-white ring-1 ring-black/10 sm:h-44 sm:w-44"
+                className="flex h-36 w-36 items-end justify-center rounded-2xl pb-2 text-xs font-semibold text-[#fff] ring-1 ring-[#000]/10 sm:h-44 sm:w-44"
                 style={{ backgroundColor: item.color }}
               >
                 {item.category}

@@ -187,7 +187,7 @@ export default function OccasionPlanner({ closet, preferences, onToast }: Occasi
                         </button>
                       ) : (
                         <div
-                          className="grid h-24 w-24 place-items-center rounded-2xl text-[10px] font-medium text-white ring-1 ring-black/10"
+                          className="grid h-24 w-24 place-items-center rounded-2xl text-[10px] font-medium text-[#fff] ring-1 ring-[#000]/10"
                           style={{ backgroundColor: item.color }}
                         >
                           {item.category}

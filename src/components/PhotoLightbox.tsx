@@ -29,13 +29,13 @@ export default function PhotoLightbox({ src, alt, onClose }: PhotoLightboxProps)
       role="dialog"
       aria-modal="true"
       aria-label={alt ?? 'Photo'}
-      className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] bg-[#000]/85 backdrop-blur-sm"
       onClick={onClose}
     >
       <button
         onClick={onClose}
         aria-label="Close"
-        className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/15 text-lg text-white backdrop-blur transition hover:bg-white/30"
+        className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-[#fff]/15 text-lg text-[#fff] backdrop-blur transition hover:bg-[#fff]/30"
       >
         ✕
       </button>
@@ -63,7 +63,7 @@ export default function PhotoLightbox({ src, alt, onClose }: PhotoLightboxProps)
         />
       </div>
 
-      <p className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-xs font-medium text-white/70">
+      <p className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-xs font-medium text-[#fff]/70">
         {zoomed ? 'Scroll to pan · tap the photo to fit' : 'Tap the photo to zoom · tap outside to close'}
       </p>
     </div>

@@ -60,13 +60,13 @@ export default function ResultsView({ trip, closet, preferences, saved, onRegene
             alt={`Scenic view representing ${trip.destination}`}
             className="h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8">
-            <p className="text-sm font-medium uppercase tracking-widest text-white/80">
+          <div className="absolute inset-0 bg-gradient-to-t from-[#000]/70 via-[#000]/10 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-6 text-[#fff] sm:p-8">
+            <p className="text-sm font-medium uppercase tracking-widest text-[#fff]/80">
               {formatDateRange(trip.startDate, trip.endDate)}
             </p>
             <h1 className="font-display text-4xl font-bold drop-shadow-sm sm:text-5xl">{trip.destination}</h1>
-            {trip.vibes.length > 0 && <p className="mt-2 text-sm text-white/85">{trip.vibes.join(' · ')}</p>}
+            {trip.vibes.length > 0 && <p className="mt-2 text-sm text-[#fff]/85">{trip.vibes.join(' · ')}</p>}
           </div>
         </div>
       </div>

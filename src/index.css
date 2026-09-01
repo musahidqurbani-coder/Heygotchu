@@ -60,14 +60,19 @@ html[data-vibe='orchid'] {
   --hero-gradient: linear-gradient(150deg, #2a1f42 0%, #5a3f82 55%, #8e6fe0 100%);
 }
 
+/* Jungalow — a deep-forest dark vibe (matching the design-direction
+   artwork, which set the whole screen in dark green, not just a card):
+   cloud/ink and white/black swap roles the same way Noir and Aurora do. */
 html[data-vibe='jungalow'] {
-  --color-cloud: #f3ecdd;
-  --color-ink: #2e3524;
+  --color-cloud: #16241a;
+  --color-ink: #f3ecdd;
+  --color-white: #24371f;
+  --color-black: #f3ecdd;
   --color-coral: #c96f3b;
   --color-tangerine: #b98a2e;
   --color-sun: #d9b25f;
-  --color-mint: #5d7d4b;
-  --color-sky: #4c6a3c;
+  --color-mint: #8bb572;
+  --color-sky: #b7c99a;
   --hero-gradient: linear-gradient(150deg, #16241a 0%, #2f4a2c 55%, #5d7d4b 100%);
 }
 
@@ -106,6 +111,8 @@ html[data-vibe='wardrobe'] {
   --hero-gradient: linear-gradient(150deg, #241a10 0%, #4a341f 55%, #6d4a2e 100%);
 }
 
+/* Scrapbook palette: dotted lilac (ground) · sticker yellow (badges/accents)
+   · pink shadow + mint shadow (alternating card "stuck-on" shadows) · ink. */
 html[data-vibe='scrapbook'] {
   --color-cloud: #f4eefc;
   --color-ink: #17131f;
@@ -114,11 +121,31 @@ html[data-vibe='scrapbook'] {
   --color-sun: #ffde59;
   --color-mint: #9be8c5;
   --color-sky: #7cc5ff;
+  --scrap-shadow-pink: #f2a6c9;
+  --scrap-shadow-mint: #9be8c5;
   --hero-gradient: linear-gradient(150deg, #151018 0%, #3a2a52 55%, #8e6fe0 100%);
 }
 html[data-vibe='scrapbook'] body {
-  background-image: radial-gradient(#dcd0f0 1.3px, transparent 1.3px);
-  background-size: 16px 16px;
+  background-image: radial-gradient(#c9aee8 1.8px, transparent 1.8px);
+  background-size: 18px 18px;
+}
+/* The hero's top badge normally uses translucent white-on-dark; scrapbook
+   swaps it for a solid sticker-yellow tag instead. */
+html[data-vibe='scrapbook'] .hero-badge {
+  background: var(--color-sun);
+  color: var(--color-ink);
+}
+/* Washi-tape cards: a bold ink outline plus a flat, colored "stuck-on"
+   shadow instead of a soft grey one — alternating pink/mint so a row or
+   grid of cards doesn't read as one flat color. */
+html[data-vibe='scrapbook'] .bg-white.rounded-2xl,
+html[data-vibe='scrapbook'] .bg-white.rounded-3xl {
+  border: 2px solid var(--color-ink);
+  box-shadow: 4px 5px 0 0 var(--scrap-shadow-pink);
+}
+html[data-vibe='scrapbook'] .bg-white.rounded-2xl:nth-child(even),
+html[data-vibe='scrapbook'] .bg-white.rounded-3xl:nth-child(even) {
+  box-shadow: 4px 5px 0 0 var(--scrap-shadow-mint);
 }
 
 html[data-vibe='bento'] {

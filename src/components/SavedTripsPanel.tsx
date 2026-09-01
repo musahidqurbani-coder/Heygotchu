@@ -33,9 +33,9 @@ export default function SavedTripsPanel({ trips, onOpen, onDelete, onBack }: Sav
               <button onClick={() => onOpen(trip)} className="block w-full text-left focus:outline-none">
                 <div className="relative h-36 w-full">
                   <img src={trip.heroImage} alt="" className="h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                    <p className="text-xs uppercase tracking-wide text-white/80">
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#000]/60 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4 text-[#fff]">
+                    <p className="text-xs uppercase tracking-wide text-[#fff]/80">
                       {formatDateRange(trip.startDate, trip.endDate)}
                     </p>
                     <p className="font-display text-lg font-semibold">{trip.destination}</p>
