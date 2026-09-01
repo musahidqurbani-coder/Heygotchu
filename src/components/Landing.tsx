@@ -69,9 +69,12 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
           this time instead of a static section standing in for it. */}
       <PreLoginCarousel onSignup={onSignup} onLogin={onLogin} />
 
-      {/* the concrete example — show the product, not promises. Pulled up to
-          overlap the hero's bottom edge (the "image block slightly on
-          another image block" motif carried into a content card). */}
+      {/* Everything below the carousel is web-only marketing copy — proof
+          card, how-it-works, ChatGPT comparison, closing CTA. The app's
+          pre-login experience is the carousel alone, exactly like the
+          approved design; none of this scrolling content was ever part of
+          that design, so it has no business showing inside the wrapped app. */}
+      {!isRunningAsTwa() && (
       <main className="mx-auto max-w-6xl px-5 sm:px-8">
         <div className="relative z-10 mx-auto -mt-10 max-w-3xl rounded-[2rem] bg-white p-6 text-left shadow-xl ring-1 ring-black/5 sm:-mt-12 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">A real result looks like this</p>
@@ -157,35 +160,34 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
           </div>
         </section>
 
-        {/* why not chatgpt — web only. The wrapped Android app hides this:
-            Play Store review guidelines are touchy about anything that reads
-            as comparing/disparaging another app, so this stays on the open
-            web where that framing is normal marketing copy. */}
-        {!isRunningAsTwa() && (
-          <section className="py-10">
-            <div className="rounded-[2rem] bg-ink p-7 text-white sm:p-10">
-              <h2 className="font-display text-3xl font-bold sm:text-4xl">
-                "Why not just ask ChatGPT?"
-              </h2>
-              <p className="mt-2 text-white/60">Because generic advice doesn't know your closet. Heygotchu does.</p>
-              <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-                {[
-                  'It remembers your actual wardrobe — every piece, photographed and cropped.',
-                  'It cross-matches across everything you own: the kurta from one photo with the trousers from another.',
-                  'It flags duplicates so the same shirt never gets packed twice.',
-                  'Your palette comes from your selfie — colors that suit you, not anyone.',
-                  'Your rules, if you want them: optional preference and modesty modes are honored exactly — never imposed.',
-                  'It tells you what to leave at home — the painful part generic AI skips.',
-                ].map((line) => (
-                  <li key={line} className="flex gap-2.5 text-sm leading-relaxed text-white/85">
-                    <span className="text-mint" aria-hidden="true">✓</span>
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-        )}
+        {/* why not chatgpt — this whole <main> is already web-only, but the
+            reasoning for THIS section specifically: Play Store review
+            guidelines are touchy about anything that reads as comparing or
+            disparaging another app, so this framing belongs on the open web
+            even independent of the broader app/web content split above. */}
+        <section className="py-10">
+          <div className="rounded-[2rem] bg-ink p-7 text-white sm:p-10">
+            <h2 className="font-display text-3xl font-bold sm:text-4xl">
+              "Why not just ask ChatGPT?"
+            </h2>
+            <p className="mt-2 text-white/60">Because generic advice doesn't know your closet. Heygotchu does.</p>
+            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[
+                'It remembers your actual wardrobe — every piece, photographed and cropped.',
+                'It cross-matches across everything you own: the kurta from one photo with the trousers from another.',
+                'It flags duplicates so the same shirt never gets packed twice.',
+                'Your palette comes from your selfie — colors that suit you, not anyone.',
+                'Your rules, if you want them: optional preference and modesty modes are honored exactly — never imposed.',
+                'It tells you what to leave at home — the painful part generic AI skips.',
+              ].map((line) => (
+                <li key={line} className="flex gap-2.5 text-sm leading-relaxed text-white/85">
+                  <span className="text-mint" aria-hidden="true">✓</span>
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
         {/* closing cta */}
         <section className="py-14 text-center">
@@ -198,6 +200,7 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
           </button>
         </section>
       </main>
+      )}
 
       <footer className="border-t border-black/5 bg-white/60">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-sm text-ink/50 sm:px-8">
