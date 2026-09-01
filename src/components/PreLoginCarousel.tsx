@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react'
 import logo from '../assets/logo-mark.png'
 import { isRunningAsTwa } from '../lib/platform'
-import dressRed from '../assets/landing/default-dress-red.jpg'
-import earringsGold from '../assets/landing/default-earrings-gold.jpg'
+import dressRed from '../assets/landing/default-dress-red.png'
+import earringsGold from '../assets/landing/default-earrings-gold.png'
 import dressBoho from '../assets/landing/default-dress-boho.webp'
-import necklace from '../assets/landing/default-necklace.jpg'
-import skirtTeal from '../assets/landing/default-skirt-teal.jpg'
+import necklace from '../assets/landing/default-necklace.png'
+import skirtTeal from '../assets/landing/default-skirt-teal.png'
 import heelsRed from '../assets/landing/default-heels-red.jpg'
 import heelsMaroon from '../assets/landing/default-heels-maroon.webp'
-import skirtBlack from '../assets/landing/default-skirt-black.jpg'
+import skirtBlack from '../assets/landing/default-skirt-black.png'
 
 interface Step {
   eyebrow: string
@@ -78,12 +78,17 @@ export default function PreLoginCarousel({ onSignup, onLogin }: PreLoginCarousel
     go(current + (half ? -1 : 1))
   }
 
+  const isApp = isRunningAsTwa()
+
   return (
-    <section className="hero-glow relative overflow-hidden px-0 pb-0 pt-0 text-[#fff]">
+    <section
+      className={`hero-glow relative overflow-hidden px-0 pb-0 pt-0 text-[#fff] ${isApp ? 'flex flex-col' : ''}`}
+      style={isApp ? { minHeight: '100dvh' } : undefined}
+    >
       {/* App-only top bar — the web page already has its own header (logo,
           Log in, Get started) above this carousel; the app has none, so the
           carousel needs its own minimal bar instead of opening bare. */}
-      {isRunningAsTwa() && (
+      {isApp && (
         <div className="relative z-10 flex items-center justify-between px-5 pt-4 sm:px-8">
           <div className="flex items-center gap-2">
             <img src={logo} alt="" className="h-7 w-7 rounded-md object-contain" />
@@ -98,7 +103,7 @@ export default function PreLoginCarousel({ onSignup, onLogin }: PreLoginCarousel
         </div>
       )}
       <div
-        className="relative h-[440px] touch-pan-y select-none sm:h-[520px]"
+        className={`relative touch-pan-y select-none ${isApp ? 'flex-1' : 'h-[440px] sm:h-[520px]'}`}
         style={{ perspective: '1500px' }}
         onClick={handleBookClick}
         onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX }}
@@ -123,12 +128,12 @@ export default function PreLoginCarousel({ onSignup, onLogin }: PreLoginCarousel
                 boxShadow: rel < 0 ? 'none' : i < total - 1 ? '2px 0 0 rgba(0,0,0,.15)' : 'none',
               }}
             >
-              <span className="mx-auto mb-4 grid h-9 w-9 place-items-center rounded-full border border-[#fff]/35 bg-[#fff]/15 font-display text-sm font-bold">
+              <span className="mx-auto mb-4 grid h-10 w-10 place-items-center rounded-full border border-[#fff]/35 bg-[#fff]/15 font-display text-base font-bold">
                 {i + 1}
               </span>
               <div className="ml-auto max-w-[82%] text-right">
-                <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#ffb1a5]">{step.eyebrow}</span>
-                <h2 className="mt-2 font-display text-4xl font-bold leading-[1.05] sm:text-5xl">
+                <span className="text-xs font-extrabold uppercase tracking-widest text-[#ffb1a5]">{step.eyebrow}</span>
+                <h2 className="mt-2 font-display text-5xl font-bold leading-[1.05] sm:text-6xl">
                   {step.title}
                   {step.titleEm && (
                     <>
@@ -137,13 +142,13 @@ export default function PreLoginCarousel({ onSignup, onLogin }: PreLoginCarousel
                     </>
                   )}
                 </h2>
-                <p className="mt-2.5 text-sm font-semibold text-[#fff]/70">{step.sub}</p>
+                <p className="mt-3 text-base font-semibold text-[#fff]/70">{step.sub}</p>
               </div>
-              <div className="relative mt-auto h-[190px] w-[210px]">
-                <div className="absolute left-1.5 top-3.5 h-[150px] w-[150px] -rotate-3 overflow-hidden rounded-2xl bg-[#f2ead9] p-3 shadow-[0_16px_34px_rgba(0,0,0,.35)]">
+              <div className="relative mt-auto h-[230px] w-[250px]">
+                <div className="absolute left-1.5 top-3.5 h-[180px] w-[180px] -rotate-3 overflow-hidden rounded-2xl bg-[#f2ead9] p-2 shadow-[0_16px_34px_rgba(0,0,0,.35)]">
                   <img src={step.big} alt="" className="h-full w-full object-contain" />
                 </div>
-                <div className="absolute left-[82px] top-0 h-24 w-24 rotate-6 overflow-hidden rounded-2xl bg-[#f2ead9] p-2 shadow-[0_16px_34px_rgba(0,0,0,.35)]">
+                <div className="absolute left-[98px] top-0 h-28 w-28 rotate-6 overflow-hidden rounded-2xl bg-[#f2ead9] p-1.5 shadow-[0_16px_34px_rgba(0,0,0,.35)]">
                   <img src={step.small} alt="" className="h-full w-full object-contain" />
                   {step.tick && (
                     <span className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-mint text-xs text-[#fff] shadow-[0_6px_14px_rgba(79,209,165,.5)]">
