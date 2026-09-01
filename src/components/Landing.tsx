@@ -2,6 +2,7 @@ import logo from '../assets/logo-mark.png'
 import ClosetGridPreview from './ClosetGridPreview'
 import OutfitMixShuffle from './OutfitMixShuffle'
 import PackedBagPreview from './PackedBagPreview'
+import PreLoginCarousel from './PreLoginCarousel'
 import { isRunningAsTwa } from '../lib/platform'
 
 import mixTop1 from '../assets/landing/mix-top-1.jpg'
@@ -44,8 +45,6 @@ interface LandingProps {
 // me, what does the result look like" in the first screen — before anyone
 // is asked to sign up.
 export default function Landing({ onLogin, onSignup }: LandingProps) {
-  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
-
   return (
     <div className="min-h-screen">
       {/* nav */}
@@ -66,30 +65,9 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
         </nav>
       </header>
 
-      {/* hero — full-bleed dark gradient, matching the Home dashboard hero and
-          the originally-approved Motion Demo pre-login look, instead of the
-          plain white-page hero this used to be. */}
-      <section className="hero-glow px-5 pb-16 pt-14 text-center text-[#fff] sm:px-8 sm:pt-20">
-        <span className="hero-badge inline-block rounded-full bg-[#fff]/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#fff]/90">
-          Pack from what you already own
-        </span>
-        <h1 className="mx-auto mt-5 max-w-3xl font-display text-5xl font-bold leading-[0.95] tracking-tight sm:text-7xl">
-          Pack less.<br />Wear more.
-        </h1>
-        <p className="mx-auto mt-5 max-w-xl text-base text-[#fff]/70 sm:text-lg">
-          Tell Heygotchu where you're going — or what the occasion is — and show it what you own.
-          It builds the exact outfits and writes the packing list.
-          From <strong className="text-[#fff]">your</strong> closet. Nothing to buy.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <button onClick={onSignup} className="rounded-full bg-coral px-7 py-3.5 text-base font-bold text-[#fff] shadow-lg shadow-coral/30 transition hover:opacity-90">
-            Build my first outfit plan →
-          </button>
-          <button onClick={() => scrollTo('how')} className="rounded-full bg-[#fff]/15 px-7 py-3.5 text-base font-semibold text-[#fff] ring-1 ring-[#fff]/30 backdrop-blur transition hover:bg-[#fff]/25">
-            See how it works
-          </button>
-        </div>
-      </section>
+      {/* hero — the approved swipeable book-page carousel, faithfully built
+          this time instead of a static section standing in for it. */}
+      <PreLoginCarousel onSignup={onSignup} onLogin={onLogin} />
 
       {/* the concrete example — show the product, not promises. Pulled up to
           overlap the hero's bottom edge (the "image block slightly on
