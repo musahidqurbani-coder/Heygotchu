@@ -19,6 +19,7 @@ export default function AuthGate() {
 
   const [email, setEmail] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
@@ -80,6 +81,10 @@ export default function AuthGate() {
     setError(null)
     if (password.length < 8) {
       setError('Password must be at least 8 characters.')
+      return
+    }
+    if (!agreedToTerms) {
+      setError('Please agree to the Terms of Use and Privacy Policy to continue.')
       return
     }
     setBusy(true)
@@ -380,15 +385,27 @@ export default function AuthGate() {
               </div>
               <p className="mt-1 text-xs text-ink/40">At least 8 characters.</p>
             </div>
-            <button type="submit" disabled={busy} className="w-full rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40">
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-cloud/60 px-3.5 py-3 text-xs leading-relaxed text-ink/70">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-black/20 text-coral focus:ring-coral"
+              />
+              <span>
+                I agree to the{' '}
+                <a href="/terms.html" target="_blank" rel="noreferrer" className="font-semibold underline hover:text-ink">Terms of Use</a>
+                {' '}and{' '}
+                <a href="/privacy.html" target="_blank" rel="noreferrer" className="font-semibold underline hover:text-ink">Privacy Policy</a>, and confirm any photos I upload are mine to share.
+              </span>
+            </label>
+            <button
+              type="submit"
+              disabled={busy || !agreedToTerms}
+              className="w-full rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+            >
               {busy ? 'Creating account…' : 'Create account'}
             </button>
-            <p className="text-center text-[11px] text-ink/45">
-              By creating an account you agree to our{' '}
-              <a href="/terms.html" target="_blank" rel="noreferrer" className="font-medium underline hover:text-ink">Terms of Use</a>
-              {' '}and{' '}
-              <a href="/privacy.html" target="_blank" rel="noreferrer" className="font-medium underline hover:text-ink">Privacy Policy</a>, and confirm any photos you upload are yours to share.
-            </p>
             <p className="text-center text-xs text-ink/50">
               Already have an account?{' '}
               <button type="button" onClick={() => { setScreen('login'); setError(null) }} className="font-semibold text-ink hover:underline">

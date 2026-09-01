@@ -24,13 +24,28 @@ export function buildInspirationQuery(
           ? 'shoes footwear'
           : garment === 'dress'
             ? 'dress ethnic wear'
-            : 'jewellery accessories'
+            : // Accessories differ sharply by gender — "jewellery" for a men's
+              // search mostly surfaces necklaces/bracelets, not what a man
+              // would actually reach for.
+              preferences.wardrobeFocus === 'men'
+              ? 'sunglasses belt watch accessories'
+              : 'jewellery accessories'
   // Occasion labels can carry UI punctuation ("Haldi / Turmeric ceremony")
   // that hurts search relevance — flatten to plain words.
   const cleanContext = context.replace(/[/·]+/g, ' ').replace(/\s+/g, ' ').trim()
   const query = [color, modest, style, gender, cleanContext, garmentWords].filter(Boolean).join(' ')
   const fallbackWord =
-    garment === 'top' ? 'kurta' : garment === 'bottom' ? 'trousers' : garment === 'footwear' ? 'shoes' : garment === 'dress' ? 'dress' : 'jewellery'
+    garment === 'top'
+      ? 'kurta'
+      : garment === 'bottom'
+        ? 'trousers'
+        : garment === 'footwear'
+          ? 'shoes'
+          : garment === 'dress'
+            ? 'dress'
+            : preferences.wardrobeFocus === 'men'
+              ? 'watch'
+              : 'jewellery'
   // The fallback keeps the occasion's leading word (Haldi, Diwali, Bali) so
   // simplified retries still return event-relevant products.
   const fallback = [color, gender, cleanContext.split(' ')[0], fallbackWord].filter(Boolean).join(' ')

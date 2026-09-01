@@ -15,9 +15,16 @@ interface AmazonShopBlocksProps {
 // colors rotate across the sections — with a 4-color palette the top,
 // bottom, and accessories each search a different color instead of all
 // hammering the first one.
+const TILE_COUNT = 5
+
 export default function AmazonShopBlocks({ preferences, context, closet }: AmazonShopBlocksProps) {
   const palette = preferences.colorAnalysis?.bestColors ?? []
-  const colorAt = (i: number) => (palette.length > 0 ? palette[i % palette.length].name : undefined)
+  // Sections used to rotate ONE color each (palette[i % length]), so all 5
+  // tiles inside "Top" — say — ran the exact same search and came back as
+  // 5 photos of one color. Now every tile gets its own color, offset per
+  // section so Top/Bottom/Accessories don't all start on the same hue.
+  const colorAt = (sectionOffset: number, tile: number) =>
+    palette.length > 0 ? palette[(sectionOffset + tile) % palette.length].name : undefined
 
   const hasTop = !closet || closet.some((c) => c.category === 'top' || c.category === 'dress')
   const hasBottom = !closet || closet.some((c) => c.category === 'bottom' || c.category === 'dress')
@@ -36,7 +43,10 @@ export default function AmazonShopBlocks({ preferences, context, closet }: Amazo
       <h3 className="font-display text-lg font-semibold">Shop the palette 🛍️</h3>
       <div className="mt-3 space-y-5">
         {sections.map((s, i) => {
-          const q = buildInspirationQuery(preferences, context, s.garment, colorAt(i))
+          const queries = Array.from({ length: TILE_COUNT }, (_, tile) => {
+            const q = buildInspirationQuery(preferences, context, s.garment, colorAt(i, tile))
+            return { query: q.query, fallback: q.fallback }
+          })
           return (
             <div key={s.label}>
               {s.missing && (
@@ -45,7 +55,7 @@ export default function AmazonShopBlocks({ preferences, context, closet }: Amazo
                   from photos 📸 or shop below:
                 </p>
               )}
-              <AmazonImageBlock label={s.label} query={q.query} fallbackQuery={q.fallback} />
+              <AmazonImageBlock label={s.label} queries={queries} />
             </div>
           )
         })}
