@@ -2,7 +2,7 @@
 // hashed assets, and the login video available offline. API calls always go
 // to the network (data must be live); static assets are cached as they're
 // fetched, and navigations fall back to the cached shell when offline.
-const CACHE = 'heygotchu-v2'
+const CACHE = 'heygotchu-v3'
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -55,7 +55,12 @@ self.addEventListener('fetch', (event) => {
   // image providers) manage their own caching.
   if (url.origin !== location.origin) return
 
-  const isHashedAsset = url.pathname.startsWith('/assets/') || url.pathname.startsWith('/videos/') || url.pathname.startsWith('/icons/')
+  // /icons/ used to be treated as "hashed" too, but those filenames are
+  // fixed (icon-512.png etc.) and DO change content on a rebrand — cache-
+  // first meant a device that had ever cached the old logo would never see
+  // the new one. Network-first (below) so a fixed launcher-icon swap shows
+  // up immediately instead of needing a cache-version bump.
+  const isHashedAsset = url.pathname.startsWith('/assets/') || url.pathname.startsWith('/videos/')
 
   if (isHashedAsset) {
     // Cache-first: hashed filenames never change content.

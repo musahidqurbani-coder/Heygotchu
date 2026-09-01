@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import logo from '../assets/logo-mark.png'
+import { isRunningAsTwa } from '../lib/platform'
 import kimono from '../assets/landing/real-kimono.jpg'
 import hijabiDuo from '../assets/landing/real-hijabi-duo.jpg'
 import palmDress from '../assets/landing/real-palm-dress.jpg'
@@ -78,6 +80,23 @@ export default function PreLoginCarousel({ onSignup, onLogin }: PreLoginCarousel
 
   return (
     <section className="hero-glow relative overflow-hidden px-0 pb-0 pt-0 text-[#fff]">
+      {/* App-only top bar — the web page already has its own header (logo,
+          Log in, Get started) above this carousel; the app has none, so the
+          carousel needs its own minimal bar instead of opening bare. */}
+      {isRunningAsTwa() && (
+        <div className="relative z-10 flex items-center justify-between px-5 pt-4 sm:px-8">
+          <div className="flex items-center gap-2">
+            <img src={logo} alt="" className="h-7 w-7 rounded-md object-contain" />
+            <span className="font-display text-base font-semibold tracking-tight">Heygotchu</span>
+          </div>
+          <button
+            onClick={onSignup}
+            className="rounded-full border border-[#fff]/25 bg-[#fff]/10 px-4 py-1.5 text-xs font-semibold text-[#fff] transition hover:bg-[#fff]/20"
+          >
+            Get started
+          </button>
+        </div>
+      )}
       <div
         className="relative h-[440px] touch-pan-y select-none sm:h-[520px]"
         style={{ perspective: '1500px' }}

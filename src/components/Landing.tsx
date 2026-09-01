@@ -47,23 +47,27 @@ interface LandingProps {
 export default function Landing({ onLogin, onSignup }: LandingProps) {
   return (
     <div className="min-h-screen">
-      {/* nav */}
-      <header className="sticky top-0 z-40 border-b border-black/5 bg-cloud/85 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
-          <div className="flex items-center gap-2">
-            <img src={logo} alt="" className="h-10 w-10 rounded-lg object-contain shadow-sm" />
-            <span className="font-display text-xl font-semibold tracking-tight">Heygotchu</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={onLogin} className="rounded-full px-4 py-2 text-sm font-semibold text-ink/70 transition hover:bg-black/5">
-              Log in
-            </button>
-            <button onClick={onSignup} className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90">
-              Get started
-            </button>
-          </div>
-        </nav>
-      </header>
+      {/* nav — web only. The app's welcome screen is the carousel alone,
+          with its own minimal top bar (see PreLoginCarousel), no browser-
+          style page chrome above it. */}
+      {!isRunningAsTwa() && (
+        <header className="sticky top-0 z-40 border-b border-black/5 bg-cloud/85 backdrop-blur-md">
+          <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
+            <div className="flex items-center gap-2">
+              <img src={logo} alt="" className="h-10 w-10 rounded-lg object-contain shadow-sm" />
+              <span className="font-display text-xl font-semibold tracking-tight">Heygotchu</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={onLogin} className="rounded-full px-4 py-2 text-sm font-semibold text-ink/70 transition hover:bg-black/5">
+                Log in
+              </button>
+              <button onClick={onSignup} className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90">
+                Get started
+              </button>
+            </div>
+          </nav>
+        </header>
+      )}
 
       {/* hero — the approved swipeable book-page carousel, faithfully built
           this time instead of a static section standing in for it. */}
@@ -202,16 +206,18 @@ export default function Landing({ onLogin, onSignup }: LandingProps) {
       </main>
       )}
 
-      <footer className="border-t border-black/5 bg-white/60">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-sm text-ink/50 sm:px-8">
-          <span>© {new Date().getFullYear()} Heygotchu · you choose the vibe, we gotchu ᰔ</span>
-          <div className="flex gap-5">
-            <a href="/terms.html" className="font-medium hover:text-ink">Terms of Use</a>
-            <a href="/privacy.html" className="font-medium hover:text-ink">Privacy Policy</a>
-            <a href="mailto:musahidqurbani@gmail.com" className="font-medium hover:text-ink">Contact</a>
+      {!isRunningAsTwa() && (
+        <footer className="border-t border-black/5 bg-white/60">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-sm text-ink/50 sm:px-8">
+            <span>© {new Date().getFullYear()} Heygotchu · you choose the vibe, we gotchu ᰔ</span>
+            <div className="flex gap-5">
+              <a href="/terms.html" className="font-medium hover:text-ink">Terms of Use</a>
+              <a href="/privacy.html" className="font-medium hover:text-ink">Privacy Policy</a>
+              <a href="mailto:musahidqurbani@gmail.com" className="font-medium hover:text-ink">Contact</a>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   )
 }
